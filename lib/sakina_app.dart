@@ -1,8 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:sakina/features/onboarding/ui/first_onboarding_screens.dart';
-// import 'package:sakina/pages/home.dart';
+import 'package:sakina/features/onboarding/main_onboarding.dart';
 class SakinaApp extends StatelessWidget {
   const SakinaApp({super.key});
 
@@ -17,7 +16,7 @@ class SakinaApp extends StatelessWidget {
       localizationsDelegates: context.localizationDelegates,
       supportedLocales: context.supportedLocales,
       locale: context.locale,
-        home: FirstOnboardingScreens(), 
+        home: MainOnboarding() ,
       ),
     );
   }
