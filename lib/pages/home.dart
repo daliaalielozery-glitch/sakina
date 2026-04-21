@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:sakina/core/theme/app_colors.dart';
 import 'package:sakina/core/widgets/custom_app_bar.dart';
+import 'package:sakina/pages/widgets/services_near_you.dart';
+import 'package:sakina/pages/widgets/top_match.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -390,176 +392,16 @@ class HomePage extends StatelessWidget {
                 ),
               ),
               //------------------end----------------container ( Browse Nearby )----------------------------------
-              //------------------start----------------container ( Top Match )----------------------------------
-              Container(
-                color: AppColors.themeColor,
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Header row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Top Matches',
-                          style: TextStyle(
-                            color: Color(0xFF120A00),
-                            fontSize: 24,
-                            fontFamily: 'Manrope',
-                            fontWeight: FontWeight.w400,
-                            height: 1.33,
-                            letterSpacing: -0.60,
-                          ),
-                        ),
-                        Text(
-                          'SEE ALL',
-                          style: TextStyle(
-                            color: Color(0xFF4C463C),
-                            fontSize: 12,
-                            fontFamily: 'Manrope',
-                            fontWeight: FontWeight.w400,
-                            height: 1.33,
-                            letterSpacing: 1.20,
-                          ),
-                        ),
-                      ],
-                    ),
+              
+              TopMatch(), //----------------TOP MATCH FUNCTION in a separate widget------------------
 
-                    const SizedBox(height: 14),
+              SizedBox(height: 24, width: 24),
 
-                    // Main card
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFAF6F0),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Compatibility badge (top right)
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEDE0C8),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: const Text(
-                                  '98% COMPATIBILITY',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF7A6F65),
-                                    letterSpacing: 0.8,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+              ServicesNearYouContainer() // SERVICES NEAR YOU FUNCTION in a separate widget
 
-                          const SizedBox(height: 10),
+             
 
-                          // Avatar + Name + Tags row
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              // Avatar
-                              CircleAvatar(
-                                radius: 44,
-                                backgroundImage: AssetImage(
-                                  'assets/pictures/profile.jpg',
-                                ),
-                              ),
 
-                              const SizedBox(width: 16),
-
-                              // Name + tags
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Nour El-Din, 21',
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF1C1C1C),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      _buildTag('QUIET'),
-                                      const SizedBox(width: 8),
-                                      _buildTag('EARLY BIRD'),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Bio text
-                          const Text(
-                            'Architecture student at AUC. Loves vinyl records and a clean kitchen.',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF555555),
-                              height: 1.5,
-                            ),
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // View Profile button
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: () {},
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF1C1C1C),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    'View Profile',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  SizedBox(width: 8),
-                                  Icon(Icons.arrow_forward, size: 16),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // -------------------end----------------container ( Top Match )----------------------------------
             ],
           ),
         ),
@@ -568,22 +410,3 @@ class HomePage extends StatelessWidget {
   }
 }
 
-Widget _buildTag(String label) {
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: const Color(0xFFE0D8CE)),
-    ),
-    child: Text(
-      label,
-      style: const TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w600,
-        color: Color(0xFF7A6F65),
-        letterSpacing: 0.5,
-      ),
-    ),
-  );
-}
