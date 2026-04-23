@@ -10,8 +10,10 @@ import 'package:sakina/features/auth/bloc/auth_bloc.dart';
 import 'package:sakina/features/auth/bloc/auth_event.dart';
 import 'package:sakina/features/auth/bloc/auth_state.dart';
 import 'package:sakina/features/auth/repository/auth_repository.dart';
+import 'package:sakina/features/auth/widgets/custom_gender_dropdown.dart';
 import 'package:sakina/features/auth/widgets/social_auth_buttons.dart';
 import 'package:sakina/features/auth/login_screen.dart';
+import 'package:sakina/features/auth/widgets/terms_and_conditions_section.dart';
 import 'package:sakina/generated/locale_keys.g.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -27,6 +29,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
+  String? selectedGender; 
   bool isAgreed = false;
 
   @override
@@ -51,13 +54,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
               builder: (_) => const Center(child: CircularProgressIndicator()),
             );
           } else if (state is AuthSuccess) {
-            Navigator.pop(context); // close loading dialog
+            Navigator.pop(context);
             Navigator.pushReplacementNamed(context, '/home');
           } else if (state is AuthFailure) {
-            Navigator.pop(context); // close loading dialog
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
-            );
+            Navigator.pop(context);
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(state.message)));
           }
         },
         child: Scaffold(
@@ -93,7 +96,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       tapped: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const LoginScreen(role: 'student'),
+                          builder: (context) =>
+                              const LoginScreen(role: 'student'),
                         ),
                       ),
                       textTitle: LocaleKeys.signup_subtitle.tr(),
@@ -123,7 +127,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     // email
                     CustomTextFormField(
                       controller: emailController,
-                      hintText: LocaleKeys.signup_university_email_placeholder.tr(),
+                      hintText: LocaleKeys.signup_university_email_placeholder
+                          .tr(),
                       labelText: LocaleKeys.signup_university_email_label.tr(),
                       keyboardType: TextInputType.emailAddress,
                       hintStyle: TextStyle(color: Colors.grey, fontSize: 14.sp),
@@ -139,33 +144,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       hintStyle: TextStyle(color: Colors.grey, fontSize: 20.sp),
                     ),
 
+                    SizedBox(height: 20.h),
+
+                    // gender field
+                    CustomGenderDropdown(
+                      value: selectedGender,
+                      onChanged: (value) {
+                        setState(() {
+                          selectedGender = value;
+                        });
+                      },
+                    ),
+
                     SizedBox(height: 15.h),
 
                     // terms & conditions checkbox
-                    Row(
-                      children: [
-                        Checkbox(
-                          value: isAgreed,
-                          activeColor: AppColors.primaryBrown,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4.r),
-                          ),
-                          onChanged: (value) {
-                            setState(() {
-                              isAgreed = value!;
-                            });
-                          },
-                        ),
-                        Expanded(
-                          child: Text(
-                            LocaleKeys.signup_terms_text.tr(),
-                            style: TextStyle(
-                              fontSize: 11.sp,
-                              color: Colors.grey[700],
-                            ),
-                          ),
-                        ),
-                      ],
+                    TermsAndConditionsSection(
+                      value: isAgreed,
+                      text: LocaleKeys.signup_terms_text.tr(),
+                      onChanged: (value) {
+                        setState(() {
+                          isAgreed = value!;
+                        });
+                      },
                     ),
 
                     SizedBox(height: 25.h),
@@ -175,12 +176,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       builder: (context) => CustomAppButton(
                         text: LocaleKeys.signup_title.tr(),
                         onPressed: () {
-                          context.read<AuthBloc>().add(SignUpRequested(
-                            email: emailController.text,
-                            password: passwordController.text,
-                            fullName: nameController.text,
-                            university: universityController.text,
-                          ));
+                          context.read<AuthBloc>().add(
+                            SignUpRequested(
+                              email: emailController.text,
+                              password: passwordController.text,
+                              fullName: nameController.text,
+                              university: universityController.text,
+                              gender: selectedGender, 
+                            ),
+                          );
                         },
                       ),
                     ),

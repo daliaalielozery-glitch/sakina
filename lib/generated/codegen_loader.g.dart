@@ -45,7 +45,6 @@ abstract class  LocaleKeys {
   static const signup_university_email_placeholder = 'signup_university_email_placeholder';
   static const signup_password_label = 'signup_password_label';
   static const signup_gender_label = 'signup_gender_label';
-  static const select_gender = 'select_gender';
   static const signup_terms_text = 'signup_terms_text';
   static const signup_button = 'signup_button';
   static const signup_divider_text = 'signup_divider_text';

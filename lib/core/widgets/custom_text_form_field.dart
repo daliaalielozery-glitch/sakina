@@ -19,6 +19,7 @@ class CustomTextFormField extends StatefulWidget {
     this.hintStyle,
     this.prefixIcon,
     this.searchTapped,
+    this.child, // ضفنا الـ child هنا
   });
 
   final TextEditingController? controller;
@@ -33,6 +34,7 @@ class CustomTextFormField extends StatefulWidget {
   final int? maxLength;
   final FocusNode? focusNode;
   final void Function(String)? onChanged;
+  final Widget? child; // تعريف الـ child
 
   @override
   State<CustomTextFormField> createState() => _CustomTextFormFieldState();
@@ -40,13 +42,12 @@ class CustomTextFormField extends StatefulWidget {
 
 class _CustomTextFormFieldState extends State<CustomTextFormField> {
   bool obSecure = true;
-  late FocusNode _effectiveFocusNode; 
+  late FocusNode _effectiveFocusNode;
 
   @override
   void initState() {
     super.initState();
     _effectiveFocusNode = widget.focusNode ?? FocusNode();
-    
     _effectiveFocusNode.addListener(() {
       if (mounted) setState(() {});
     });
@@ -54,7 +55,6 @@ class _CustomTextFormFieldState extends State<CustomTextFormField> {
 
   @override
   void dispose() {
-    
     if (widget.focusNode == null) {
       _effectiveFocusNode.dispose();
     }
@@ -97,51 +97,52 @@ class _CustomTextFormFieldState extends State<CustomTextFormField> {
           ),
           SizedBox(height: 8.h),
         ],
-        TextFormField(
-          onFieldSubmitted: widget.searchTapped,
-          onChanged: widget.onChanged,
-          maxLength: widget.maxLength,
-          focusNode: _effectiveFocusNode, //FocusNode 
-          validator: widget.validators,
-          keyboardType: widget.keyboardType,
-          cursorColor: AppColors.primaryBrown,
-          cursorHeight: 20.h,
-          cursorWidth: 2.w,
-          controller: widget.controller,
-          onTapOutside: (event) => FocusScope.of(context).unfocus(),
-          obscureText: widget.secured && obSecure,
-          decoration: InputDecoration(
-            counterText: "",
-            suffixIcon: widget.secured
-                ? Padding(
-                    padding: EdgeInsets.all(16.r),
-                    child: InkWell(
-                      onTap: toggle,
-                      child: obSecure
-                          ? SvgPicture.asset("assets/icons/visibilite_off.svg"
-                              ,
-                              width: 15.w,
-                            )
-                          : SvgPicture.asset("assets/icons/Visibility.svg"
-                              ,
-                              width: 15.w,
-                            ),
-                    ),
-                  )
-                : null,
-            
-            hintText: _effectiveFocusNode.hasFocus ? "" : widget.hintText,
-            hintStyle: widget.hintStyle ?? AppTextStyle.hintStyle,
-            fillColor: AppColors.textFieldBackground,
-            filled: true,
-            errorStyle: AppTextStyle.errorStyle,
-            enabledBorder: border,
-            focusedBorder: focusBorder,
-            errorBorder: errorBorder,
-            focusedErrorBorder: focusBorder,
-            prefixIcon: widget.prefixIcon,
-          ),
-        ),
+        // التعديل هنا: لو بعتنا child اعرضه، غير كدة اعرض الـ TextFormField العادي
+        widget.child ??
+            TextFormField(
+              onFieldSubmitted: widget.searchTapped,
+              onChanged: widget.onChanged,
+              maxLength: widget.maxLength,
+              focusNode: _effectiveFocusNode,
+              validator: widget.validators,
+              keyboardType: widget.keyboardType,
+              cursorColor: AppColors.primaryBrown,
+              cursorHeight: 20.h,
+              cursorWidth: 2.w,
+              controller: widget.controller,
+              onTapOutside: (event) => FocusScope.of(context).unfocus(),
+              obscureText: widget.secured && obSecure,
+              decoration: InputDecoration(
+                counterText: "",
+                suffixIcon: widget.secured
+                    ? Padding(
+                        padding: EdgeInsets.all(16.r),
+                        child: InkWell(
+                          onTap: toggle,
+                          child: obSecure
+                              ? SvgPicture.asset(
+                                  "assets/icons/visibilite_off.svg",
+                                  width: 15.w,
+                                )
+                              : SvgPicture.asset(
+                                  "assets/icons/Visibility.svg",
+                                  width: 15.w,
+                                ),
+                        ),
+                      )
+                    : null,
+                hintText: _effectiveFocusNode.hasFocus ? "" : widget.hintText,
+                hintStyle: widget.hintStyle ?? AppTextStyle.hintStyle,
+                fillColor: AppColors.textFieldBackground,
+                filled: true,
+                errorStyle: AppTextStyle.errorStyle,
+                enabledBorder: border,
+                focusedBorder: focusBorder,
+                errorBorder: errorBorder,
+                focusedErrorBorder: focusBorder,
+                prefixIcon: widget.prefixIcon,
+              ),
+            ),
       ],
     );
   }

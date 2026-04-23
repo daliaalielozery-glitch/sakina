@@ -11,106 +11,98 @@
 
 import 'package:flutter/widgets.dart';
 
-class $AssetsDaliaAssetsGen {
-  const $AssetsDaliaAssetsGen();
+class $AssetsIconsGen {
+  const $AssetsIconsGen();
 
-  /// Directory path: assets/dalia_assets/icons
-  $AssetsDaliaAssetsIconsGen get icons => const $AssetsDaliaAssetsIconsGen();
+  /// File path: assets/icons/Amazing_views.svg
+  String get amazingViews => 'assets/icons/Amazing_views.svg';
 
-  /// Directory path: assets/dalia_assets/pictures
-  $AssetsDaliaAssetsPicturesGen get pictures =>
-      const $AssetsDaliaAssetsPicturesGen();
+  /// File path: assets/icons/Apple.svg
+  String get apple => 'assets/icons/Apple.svg';
 
-  /// Directory path: assets/dalia_assets/translations
-  $AssetsDaliaAssetsTranslationsGen get translations =>
-      const $AssetsDaliaAssetsTranslationsGen();
-}
+  /// File path: assets/icons/Arrow.svg
+  String get arrow => 'assets/icons/Arrow.svg';
 
-class $AssetsDaliaAssetsIconsGen {
-  const $AssetsDaliaAssetsIconsGen();
+  /// File path: assets/icons/Beachfront.svg
+  String get beachfront => 'assets/icons/Beachfront.svg';
 
-  /// File path: assets/dalia_assets/icons/Amazing_views.svg
-  String get amazingViews => 'assets/dalia_assets/icons/Amazing_views.svg';
+  /// File path: assets/icons/Big_Search.svg
+  String get bigSearch => 'assets/icons/Big_Search.svg';
 
-  /// File path: assets/dalia_assets/icons/Apple.svg
-  String get apple => 'assets/dalia_assets/icons/Apple.svg';
+  /// File path: assets/icons/Bill.svg
+  String get bill => 'assets/icons/Bill.svg';
 
-  /// File path: assets/dalia_assets/icons/Arrow.svg
-  String get arrow => 'assets/dalia_assets/icons/Arrow.svg';
+  /// File path: assets/icons/Bill_With_Notification.svg
+  String get billWithNotification => 'assets/icons/Bill_With_Notification.svg';
 
-  /// File path: assets/dalia_assets/icons/Beachfront.svg
-  String get beachfront => 'assets/dalia_assets/icons/Beachfront.svg';
+  /// File path: assets/icons/Caves.svg
+  String get caves => 'assets/icons/Caves.svg';
 
-  /// File path: assets/dalia_assets/icons/Big_Search.svg
-  String get bigSearch => 'assets/dalia_assets/icons/Big_Search.svg';
+  /// File path: assets/icons/CuteRobot.svg
+  String get cuteRobot => 'assets/icons/CuteRobot.svg';
 
-  /// File path: assets/dalia_assets/icons/Bill.svg
-  String get bill => 'assets/dalia_assets/icons/Bill.svg';
+  /// File path: assets/icons/Favorites.svg
+  String get favorites => 'assets/icons/Favorites.svg';
 
-  /// File path: assets/dalia_assets/icons/Bill_With_Notification.svg
-  String get billWithNotification =>
-      'assets/dalia_assets/icons/Bill_With_Notification.svg';
+  /// File path: assets/icons/Filter.svg
+  String get filter => 'assets/icons/Filter.svg';
 
-  /// File path: assets/dalia_assets/icons/Caves.svg
-  String get caves => 'assets/dalia_assets/icons/Caves.svg';
+  /// File path: assets/icons/Food.svg
+  String get food => 'assets/icons/Food.svg';
 
-  /// File path: assets/dalia_assets/icons/Favorites.svg
-  String get favorites => 'assets/dalia_assets/icons/Favorites.svg';
+  /// File path: assets/icons/Google.svg
+  String get google => 'assets/icons/Google.svg';
 
-  /// File path: assets/dalia_assets/icons/Filter.svg
-  String get filter => 'assets/dalia_assets/icons/Filter.svg';
+  /// File path: assets/icons/Home.svg
+  String get home => 'assets/icons/Home.svg';
 
-  /// File path: assets/dalia_assets/icons/Food.svg
-  String get food => 'assets/dalia_assets/icons/Food.svg';
+  /// File path: assets/icons/House.svg
+  String get house => 'assets/icons/House.svg';
 
-  /// File path: assets/dalia_assets/icons/Google.svg
-  String get google => 'assets/dalia_assets/icons/Google.svg';
+  /// File path: assets/icons/Laundry.svg
+  String get laundry => 'assets/icons/Laundry.svg';
 
-  /// File path: assets/dalia_assets/icons/Home.svg
-  String get home => 'assets/dalia_assets/icons/Home.svg';
+  /// File path: assets/icons/Location.svg
+  String get location => 'assets/icons/Location.svg';
 
-  /// File path: assets/dalia_assets/icons/House.svg
-  String get house => 'assets/dalia_assets/icons/House.svg';
+  /// File path: assets/icons/Messages.svg
+  String get messages => 'assets/icons/Messages.svg';
 
-  /// File path: assets/dalia_assets/icons/Laundry.svg
-  String get laundry => 'assets/dalia_assets/icons/Laundry.svg';
+  /// File path: assets/icons/Person.svg
+  String get person => 'assets/icons/Person.svg';
 
-  /// File path: assets/dalia_assets/icons/Location.svg
-  String get location => 'assets/dalia_assets/icons/Location.svg';
+  /// File path: assets/icons/Robot.svg
+  String get robot => 'assets/icons/Robot.svg';
 
-  /// File path: assets/dalia_assets/icons/Messages.svg
-  String get messages => 'assets/dalia_assets/icons/Messages.svg';
+  /// File path: assets/icons/Rooms.svg
+  String get rooms => 'assets/icons/Rooms.svg';
 
-  /// File path: assets/dalia_assets/icons/Person.svg
-  String get person => 'assets/dalia_assets/icons/Person.svg';
+  /// File path: assets/icons/Search.svg
+  String get search => 'assets/icons/Search.svg';
 
-  /// File path: assets/dalia_assets/icons/Robot.svg
-  String get robot => 'assets/dalia_assets/icons/Robot.svg';
+  /// File path: assets/icons/Star.svg
+  String get star => 'assets/icons/Star.svg';
 
-  /// File path: assets/dalia_assets/icons/Rooms.svg
-  String get rooms => 'assets/dalia_assets/icons/Rooms.svg';
+  /// File path: assets/icons/Utility_Bill_Reminder.svg
+  String get utilityBillReminder => 'assets/icons/Utility_Bill_Reminder.svg';
 
-  /// File path: assets/dalia_assets/icons/Search.svg
-  String get search => 'assets/dalia_assets/icons/Search.svg';
+  /// File path: assets/icons/Visibility.svg
+  String get visibility => 'assets/icons/Visibility.svg';
 
-  /// File path: assets/dalia_assets/icons/Star.svg
-  String get star => 'assets/dalia_assets/icons/Star.svg';
+  /// File path: assets/icons/filtericon.svg
+  String get filtericon => 'assets/icons/filtericon.svg';
 
-  /// File path: assets/dalia_assets/icons/Utility_Bill_Reminder.svg
-  String get utilityBillReminder =>
-      'assets/dalia_assets/icons/Utility_Bill_Reminder.svg';
+  /// File path: assets/icons/step1.svg
+  String get step1 => 'assets/icons/step1.svg';
 
-  /// File path: assets/dalia_assets/icons/Visibility.svg
-  String get visibility => 'assets/dalia_assets/icons/Visibility.svg';
+  /// File path: assets/icons/step2.svg
+  String get step2 => 'assets/icons/step2.svg';
 
-  /// File path: assets/dalia_assets/icons/step1.svg
-  String get step1 => 'assets/dalia_assets/icons/step1.svg';
+  /// File path: assets/icons/step3.svg
+  String get step3 => 'assets/icons/step3.svg';
 
-  /// File path: assets/dalia_assets/icons/step2.svg
-  String get step2 => 'assets/dalia_assets/icons/step2.svg';
-
-  /// File path: assets/dalia_assets/icons/step3.svg
-  String get step3 => 'assets/dalia_assets/icons/step3.svg';
+  /// File path: assets/icons/visibilite_off.svg
+  String get visibiliteOff => 'assets/icons/visibilite_off.svg';
 
   /// List of all assets
   List<String> get values => [
@@ -122,6 +114,7 @@ class $AssetsDaliaAssetsIconsGen {
     bill,
     billWithNotification,
     caves,
+    cuteRobot,
     favorites,
     filter,
     food,
@@ -138,62 +131,73 @@ class $AssetsDaliaAssetsIconsGen {
     star,
     utilityBillReminder,
     visibility,
+    filtericon,
     step1,
     step2,
     step3,
+    visibiliteOff,
   ];
 }
 
-class $AssetsDaliaAssetsPicturesGen {
-  const $AssetsDaliaAssetsPicturesGen();
+class $AssetsPicturesGen {
+  const $AssetsPicturesGen();
 
-  /// File path: assets/dalia_assets/pictures/android12.png
+  /// File path: assets/pictures/AI_Cute.png
+  AssetGenImage get aICute =>
+      const AssetGenImage('assets/pictures/AI_Cute.png');
+
+  /// File path: assets/pictures/android12.png
   AssetGenImage get android12 =>
-      const AssetGenImage('assets/dalia_assets/pictures/android12.png');
+      const AssetGenImage('assets/pictures/android12.png');
 
-  /// File path: assets/dalia_assets/pictures/browse_Nearby.svg
-  String get browseNearby => 'assets/dalia_assets/pictures/browse_Nearby.svg';
-
-  /// File path: assets/dalia_assets/pictures/onboarding1.png
+  /// File path: assets/pictures/onboarding1.png
   AssetGenImage get onboarding1 =>
-      const AssetGenImage('assets/dalia_assets/pictures/onboarding1.png');
+      const AssetGenImage('assets/pictures/onboarding1.png');
 
-  /// File path: assets/dalia_assets/pictures/onboarding2.png
+  /// File path: assets/pictures/onboarding2.png
   AssetGenImage get onboarding2 =>
-      const AssetGenImage('assets/dalia_assets/pictures/onboarding2.png');
+      const AssetGenImage('assets/pictures/onboarding2.png');
 
-  /// File path: assets/dalia_assets/pictures/onboarding3.png
+  /// File path: assets/pictures/onboarding3.png
   AssetGenImage get onboarding3 =>
-      const AssetGenImage('assets/dalia_assets/pictures/onboarding3.png');
+      const AssetGenImage('assets/pictures/onboarding3.png');
 
-  /// File path: assets/dalia_assets/pictures/onboarding4.png
+  /// File path: assets/pictures/onboarding4.png
   AssetGenImage get onboarding4 =>
-      const AssetGenImage('assets/dalia_assets/pictures/onboarding4.png');
+      const AssetGenImage('assets/pictures/onboarding4.png');
 
-  /// File path: assets/dalia_assets/pictures/splash.png
-  AssetGenImage get splash =>
-      const AssetGenImage('assets/dalia_assets/pictures/splash.png');
+  /// File path: assets/pictures/profile.jpg
+  AssetGenImage get profile =>
+      const AssetGenImage('assets/pictures/profile.jpg');
+
+  /// File path: assets/pictures/room.jpg
+  AssetGenImage get room => const AssetGenImage('assets/pictures/room.jpg');
+
+  /// File path: assets/pictures/splash.png
+  AssetGenImage get splash => const AssetGenImage('assets/pictures/splash.png');
 
   /// List of all assets
-  List<dynamic> get values => [
+  List<AssetGenImage> get values => [
+    aICute,
     android12,
-    browseNearby,
     onboarding1,
     onboarding2,
     onboarding3,
     onboarding4,
+    profile,
+    room,
     splash,
   ];
 }
 
-class $AssetsDaliaAssetsTranslationsGen {
-  const $AssetsDaliaAssetsTranslationsGen();
+class $AssetsTranslationsGen {
+  const $AssetsTranslationsGen();
 
-  /// File path: assets/dalia_assets/translations/ar.json
-  String get ar => 'assets/dalia_assets/translations/ar.json';
+  /// File path: assets/translations/ar.json
+  String get ar => 'assets/translations/ar.json';
 
-  /// File path: assets/dalia_assets/translations/en.json
-  String get en => 'assets/dalia_assets/translations/en.json';
+  /// File path: assets/translations/en.json
+  String get en => 'assets/translations/en.json';
 
   /// List of all assets
   List<String> get values => [ar, en];
@@ -202,7 +206,9 @@ class $AssetsDaliaAssetsTranslationsGen {
 class Assets {
   const Assets._();
 
-  static const $AssetsDaliaAssetsGen daliaAssets = $AssetsDaliaAssetsGen();
+  static const $AssetsIconsGen icons = $AssetsIconsGen();
+  static const $AssetsPicturesGen pictures = $AssetsPicturesGen();
+  static const $AssetsTranslationsGen translations = $AssetsTranslationsGen();
 }
 
 class AssetGenImage {

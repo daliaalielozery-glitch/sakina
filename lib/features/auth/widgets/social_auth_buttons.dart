@@ -21,7 +21,7 @@ class SocialAuthButtons extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // 1. الجزء الخاص بالـ Divider
+        // Divider
         Row(
           children: [
             const Expanded(
@@ -49,9 +49,9 @@ class SocialAuthButtons extends StatelessWidget {
           ],
         ),
 
-        SizedBox(height: 24.h), // مسافة بين الخط والزراير
+        SizedBox(height: 24.h), 
 
-        // 2. الجزء الخاص بالزراير (Google & Apple)
+        // (Google & Apple)
         Row(
           children: [
             Expanded(
@@ -75,7 +75,7 @@ class SocialAuthButtons extends StatelessWidget {
     );
   }
 
-  // ميثود داخلية عشان ما نكررش كود الـ Button
+  // Method to prevent repeating the Button code
   Widget _buildSocialItem({
     required String label,
     required IconData icon,
