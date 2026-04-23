@@ -72,7 +72,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             fontWeight: FontWeight.w700,
           ),
         ),
-        centerTitle: true,
+        centerTitle: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings, color: brown),
+            onPressed: () {},
+          ),
+        ],
       ),
       body: SafeArea(
         child: Form(
@@ -84,35 +90,43 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               children: [
                 GestureDetector(
                   onTap: _pickImage,
-                  child: Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: card,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: border, width: 3),
-                      image: _selectedImage != null
-                          ? DecorationImage(
-                              image: FileImage(_selectedImage!),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
-                    ),
-                    child: _selectedImage == null
-                        ? const Icon(Icons.person, size: 50, color: muted)
-                        : null,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: _pickImage,
-                  child: const Text(
-                    'Change Photo',
-                    style: TextStyle(
-                      color: Color(0xFF8B7355),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  child: Stack(
+                    children: [
+                      Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          color: card,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: border, width: 3),
+                          image: _selectedImage != null
+                              ? DecorationImage(
+                                  image: FileImage(_selectedImage!),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                        child: _selectedImage == null
+                            ? const Icon(Icons.person, size: 50, color: muted)
+                            : null,
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            color: brown,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.edit,
+                            size: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 24),
