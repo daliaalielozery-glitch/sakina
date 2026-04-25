@@ -1,10 +1,11 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:sakina/features/onboarding/main_onboarding.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:sakina/features/auth/bloc/auth_bloc.dart';
-import 'package:sakina/features/auth/repository/auth_repository.dart';
+import 'package:sakina/core/widgets/bottom_bar.dart';
+import 'package:sakina/features/messages/chat_screen.dart';
+//import 'package:sakina/landlord/dashboard_screen.dart';
+//import 'package:sakina/features/ai_match/screens/loading_screen.dart';
+// import 'package:sakina/features/role/ui/role_screen.dart';
 
 class SakinaApp extends StatelessWidget {
   const SakinaApp({super.key});
@@ -15,15 +16,12 @@ class SakinaApp extends StatelessWidget {
       designSize: const Size(390, 884),
       minTextAdapt: true,
       splitScreenMode: true,
-      child: BlocProvider(
-        create: (_) => AuthBloc(AuthRepository()),
-        child: MaterialApp(
-          debugShowCheckedModeBanner: false,
-          localizationsDelegates: context.localizationDelegates,
-          supportedLocales: context.supportedLocales,
-          locale: context.locale,
-          home: MainOnboarding(),
-        ),
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        localizationsDelegates: context.localizationDelegates,
+        supportedLocales: context.supportedLocales,
+        locale: context.locale,
+        home: ChatScreen(),
       ),
     );
   }
