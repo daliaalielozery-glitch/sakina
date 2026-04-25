@@ -58,19 +58,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
               builder: (_) => const Center(child: CircularProgressIndicator()),
             );
           } else if (state is AuthSuccess) {
-           Navigator.pushReplacement(
-            context,
-             MaterialPageRoute(
-              builder: (context) => widget.role == 'landlord'
-               ? const DashboardScreen()  // landlord goes here
-                : const HomePage(),       // tenant goes here
-  ),
-);
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => widget.role == 'landlord'
+                    ? const DashboardScreen() // landlord goes here
+                    : const HomePage(), // tenant goes here
+              ),
+            );
           } else if (state is AuthFailure) {
             Navigator.pop(context); // close loading dialog
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(state.message)));
           }
         },
         child: Scaffold(
@@ -106,7 +106,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       tapped: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                         builder: (context) => LoginScreen(role: widget.role),
+                          builder: (context) => LoginScreen(role: widget.role),
                         ),
                       ),
                       textTitle: LocaleKeys.signup_subtitle.tr(),
@@ -129,15 +129,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         controller: universityController,
                         hintText: LocaleKeys.signup_university_placeholder.tr(),
                         labelText: LocaleKeys.signup_university_label.tr(),
-                        hintStyle: TextStyle(color: Colors.grey, fontSize: 14.sp),
+                        hintStyle: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14.sp,
+                        ),
                       ),
                       SizedBox(height: 20.h),
                       CustomTextFormField(
                         controller: emailController,
-                        hintText: LocaleKeys.signup_university_email_placeholder.tr(),
-                        labelText: LocaleKeys.signup_university_email_label.tr(),
+                        hintText: LocaleKeys.signup_university_email_placeholder
+                            .tr(),
+                        labelText: LocaleKeys.signup_university_email_label
+                            .tr(),
                         keyboardType: TextInputType.emailAddress,
-                        hintStyle: TextStyle(color: Colors.grey, fontSize: 14.sp),
+                        hintStyle: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14.sp,
+                        ),
                       ),
                       SizedBox(height: 20.h),
                     ],
@@ -148,7 +156,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         hintText: LocaleKeys.email_placeholder.tr(),
                         labelText: LocaleKeys.email_label.tr(),
                         keyboardType: TextInputType.emailAddress,
-                        hintStyle: TextStyle(color: Colors.grey, fontSize: 14.sp),
+                        hintStyle: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14.sp,
+                        ),
                       ),
                       SizedBox(height: 20.h),
                       CustomTextFormField(
@@ -156,10 +167,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         hintText: 'enter you national id',
                         labelText: 'NATIONAL ID',
                         keyboardType: TextInputType.number,
-                        hintStyle: TextStyle(color: Colors.grey, fontSize: 14.sp),
+                        hintStyle: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14.sp,
+                        ),
                         validators: (value) {
-                          if (value == null || value.isEmpty) return 'enter your national id';
-                          if (value.length != 14) return 'national id should be 14 numbers';
+                          if (value == null || value.isEmpty)
+                            return 'enter your national id';
+                          if (value.length != 14)
+                            return 'national id should be 14 numbers';
                           return null;
                         },
                       ),
@@ -211,12 +227,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       builder: (context) => CustomAppButton(
                         text: LocaleKeys.signup_title.tr(),
                         onPressed: () {
-                          context.read<AuthBloc>().add(SignUpRequested(
-                            email: emailController.text,
-                            password: passwordController.text,
-                            fullName: nameController.text,
-                            university: universityController.text,
-                          ));
+                          context.read<AuthBloc>().add(
+                            SignUpRequested(
+                              email: emailController.text,
+                              password: passwordController.text,
+                              fullName: nameController.text,
+                              university: universityController.text,
+                            ),
+                          );
                         },
                       ),
                     ),
@@ -226,7 +244,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     SocialAuthButtons(
                       googleLabel: LocaleKeys.signup_google_auth.tr(),
                       appleLabel: LocaleKeys.signup_eduid_auth.tr(),
-                      onGoogleTap: () {},
+                      onGoogleTap: () {
+                        context.read<AuthBloc>().add(GoogleSignInRequested());
+                      },
+
                       onAppleTap: () {},
                     ),
 

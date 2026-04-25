@@ -17,7 +17,6 @@ import 'package:sakina/pages/home.dart';
 import 'package:sakina/landlord/dashboard_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 
-
 class LoginScreen extends StatefulWidget {
   final String role;
   const LoginScreen({super.key, required this.role});
@@ -36,12 +35,14 @@ class _LoginScreenState extends State<LoginScreen> {
     passwordController.dispose();
     super.dispose();
   }
-Future<void> _signInWithMicrosoft() async {
-  await Supabase.instance.client.auth.signInWithOAuth(
-    OAuthProvider.azure,
-    redirectTo: 'io.supabase.sakina://login-callback',
-  );
-}
+
+  Future<void> _signInWithMicrosoft() async {
+    await Supabase.instance.client.auth.signInWithOAuth(
+      OAuthProvider.azure,
+      redirectTo: 'io.supabase.sakina://login-callback',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
@@ -58,16 +59,16 @@ Future<void> _signInWithMicrosoft() async {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-               builder: (context) => widget.role == 'landlord'
-               ? const DashboardScreen()  // landlord goes here
-               : const HomePage(),       // tenant goes here
-  ),
-);
+                builder: (context) => widget.role == 'landlord'
+                    ? const DashboardScreen() // landlord goes here
+                    : const HomePage(), // tenant goes here
+              ),
+            );
           } else if (state is AuthFailure) {
             Navigator.pop(context); // close loading dialog
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(state.message)));
           }
         },
         child: Scaffold(
@@ -145,11 +146,13 @@ Future<void> _signInWithMicrosoft() async {
                       builder: (context) => CustomAppButton(
                         text: LocaleKeys.title.tr(),
                         onPressed: () {
-                          context.read<AuthBloc>().add(LoginRequested(
-                            email: emailController.text,
-                            password: passwordController.text,
-                            role: widget.role,
-                          ));
+                          context.read<AuthBloc>().add(
+                            LoginRequested(
+                              email: emailController.text,
+                              password: passwordController.text,
+                              role: widget.role,
+                            ),
+                          );
                         },
                       ),
                     ),
@@ -160,9 +163,7 @@ Future<void> _signInWithMicrosoft() async {
                       googleLabel: LocaleKeys.google_auth.tr(),
                       appleLabel: LocaleKeys.apple_auth.tr(),
                       onGoogleTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Google Login Tapped!")),
-                        );
+                        context.read<AuthBloc>().add(GoogleSignInRequested());
                       },
                       onAppleTap: () {
                         _signInWithMicrosoft();
@@ -176,10 +177,11 @@ Future<void> _signInWithMicrosoft() async {
                       child: Customtextrich(
                         tapped: () {
                           Navigator.push(
-                           context,
-                             MaterialPageRoute(
-                              builder: (context) => SignUpScreen(role: widget.role),
-                             ),
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  SignUpScreen(role: widget.role),
+                            ),
                           );
                         },
                         textTitle: LocaleKeys.footer_text.tr(),

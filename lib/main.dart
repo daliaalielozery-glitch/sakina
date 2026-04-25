@@ -12,11 +12,13 @@ void main() async {
     anonKey: 'sb_publishable__vpgk7qNq798y_h3_Zs9sQ_zCqC-65D',
   );
 
-  runApp(EasyLocalization(
-    supportedLocales: [Locale('en'), Locale('ar')],
-    path: 'assets/translations',
-    fallbackLocale: Locale('en'),
-    startLocale: Locale('en'),
-    child: SakinaApp(),
-  ));
+  runApp(
+    EasyLocalization(
+      supportedLocales: [Locale('en'), Locale('ar')],
+      path: 'assets/translations',
+      fallbackLocale: Locale('en'),
+      startLocale: Locale('en'),
+      child: SakinaApp(),
+    ),
+  );
 }
