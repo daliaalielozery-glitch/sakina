@@ -7,7 +7,7 @@ import 'package:sakina/features/role/ui/role_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:sakina/features/auth/bloc/auth_bloc.dart';
 import 'package:sakina/features/auth/repository/auth_repository.dart';
-//import 'package:sakina/pages/explore.dart';
+import 'package:sakina/pages/explore.dart';
 
 class SakinaApp extends StatelessWidget {
   const SakinaApp({super.key});
