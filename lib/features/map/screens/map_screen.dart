@@ -42,11 +42,9 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
   final List<_Category> _categories = const [
     // _Category(icon: Icons.home_outlined, label: 'Rooms'),
     _Category(icon: Icons.bed_outlined, label: 'Rooms'),
-    _Category(icon: Icons.landscape_outlined, label: 'Amazing views'),
+    // _Category(icon: Icons.landscape_outlined, label: 'Amazing views'),
     _Category(icon: Icons.apartment, label: 'Apartments'),
 
-    // _Category(icon: Icons.beach_access_outlined, label: 'Beachfront'),
-    // _Category(icon: Icons.cabin_outlined, label: 'Cabins'),
   ];
   int _selectedCategory = 0;
 
@@ -97,28 +95,38 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
           ),
 
           // ── Top overlay ──────────────────────────────────────────────────
-          SafeArea(
-            child: Column(
-              children: [
-                // Search bar
-                _SearchBar(),
-                const SizedBox(height: 8),
-                // Category row
-                _CategoryRow(
-                  categories: _categories,
-                  selected: _selectedCategory,
-                  onTap: (i) => setState(() => _selectedCategory = i),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              color: const Color(0xFFF4EFE9), // Beige from image
+              child: SafeArea(
+                bottom: false,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Search bar
+                    _SearchBar(),
+                    const SizedBox(height: 8),
+                    // Category row
+                    _CategoryRow(
+                      categories: _categories,
+                      selected: _selectedCategory,
+                      onTap: (i) => setState(() => _selectedCategory = i),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
 
           // ── My Location FAB ──────────────────────────────────────────────
           Positioned(
-            top: MediaQuery.of(context).padding.top + 130,
+            top: MediaQuery.of(context).padding.top + 150,
             right: 12,
             child: _MapFab(
-              icon: Icons.near_me,
+              icon: Icons.navigation,
               onTap: () => _mapController.move(const LatLng(52.521, 13.413), 14.5),
             ),
           ),
@@ -196,9 +204,9 @@ class _SearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
       child: Material(
-        elevation: 4,
+        elevation: 8,
         shadowColor: const Color.fromRGBO(0, 0, 0, 0.15),
         borderRadius: BorderRadius.circular(40),
         child: Container(
@@ -209,8 +217,8 @@ class _SearchBar extends StatelessWidget {
           ),
           child: Row(
             children: [
-              const Icon(Icons.search, size: 20),
-              const SizedBox(width: 10),
+              const Icon(Icons.search, size: 24, color: Colors.black87),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -218,22 +226,23 @@ class _SearchBar extends StatelessWidget {
                   children: [
                     const Text(
                       'Where to?',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Colors.black),
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       'Anywhere · Any week · Add guests',
-                      style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
                     ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey[300]!),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.tune, size: 18),
+                child: const Icon(Icons.tune, size: 20, color: Colors.black87),
               ),
             ],
           ),
@@ -264,37 +273,42 @@ class _CategoryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 60,
+      height: 70,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: categories.length,
-        itemBuilder: (_, i) {
+        itemBuilder: (context, i) {
           final cat = categories[i];
           final isSelected = i == selected;
           return GestureDetector(
             onTap: () => onTap(i),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              margin: const EdgeInsets.only(right: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: isSelected ? Colors.black : Colors.white.withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(30),
-              ),
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 28),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(cat.icon, size: 20, color: isSelected ? Colors.white : Colors.black87),
-                  const SizedBox(height: 2),
+                  Icon(
+                    cat.icon,
+                    size: 28,
+                    color: isSelected ? Colors.black : Colors.black54,
+                  ),
+                  const SizedBox(height: 6),
                   Text(
                     cat.label,
                     style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      color: isSelected ? Colors.white : Colors.black87,
+                      fontSize: 12,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                      color: isSelected ? Colors.black : Colors.black54,
                     ),
                   ),
+                  const SizedBox(height: 6),
+                  Container(
+                    height: 2,
+                    width: 30, // Small line
+                    color: isSelected ? Colors.black : Colors.transparent,
+                  )
                 ],
               ),
             ),
