@@ -6,6 +6,7 @@ import 'package:sakina/features/auth/bloc/auth_bloc.dart';
 import 'package:sakina/features/auth/repository/auth_repository.dart';
 import 'package:sakina/features/onboarding/main_onboarding.dart';
 import 'package:sakina/pages/home.dart';
+import 'package:sakina/bill_popup/utilitybill.dart';
 import 'main.dart';
 
 class SakinaApp extends StatelessWidget {
@@ -25,9 +26,9 @@ class SakinaApp extends StatelessWidget {
           localizationsDelegates: context.localizationDelegates,
           supportedLocales: context.supportedLocales,
           locale: context.locale,
-          home: MainOnboarding(),
+          home: UtilityBillScreen(),
           routes: {
-            '/home': (context) => const HomePage(),
+            '/utility-bill': (context) => const UtilityBillScreen(),
           },
         ),
       ),
