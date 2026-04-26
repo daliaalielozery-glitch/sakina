@@ -52,12 +52,12 @@ class AuthRepository {
   }
 
   Future<void> signInWithMicrosoft() async {
-    await supabase.auth.signInWithOAuth(
-      OAuthProvider.azure,
-      redirectTo: _redirectUrl,
-      authScreenLaunchMode: kIsWeb
-          ? LaunchMode.platformDefault
-          : LaunchMode.externalApplication,
-    );
-  }
+  await supabase.auth.signInWithOAuth(
+    OAuthProvider.azure,
+    redirectTo: _redirectUrl,
+    authScreenLaunchMode: kIsWeb
+        ? LaunchMode.platformDefault
+        : LaunchMode.externalApplication,
+  );
+}
 }
