@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dashboard_screen.dart';
 import 'edit_profile_screen.dart';
 import 'listing_details_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HostProfileScreen extends StatelessWidget {
   const HostProfileScreen({super.key});
@@ -32,16 +33,19 @@ class HostProfileScreen extends StatelessWidget {
                     const SizedBox(height: 20),
                     const Center(child: _ProfilePhoto()),
                     const SizedBox(height: 18),
-                    const Text(
-                      'Khaled Ibrahim',
-                      style: TextStyle(
-                        fontSize: 30,
-                        height: 1.0,
-                        fontWeight: FontWeight.w800,
-                        color: brown,
-                        letterSpacing: -1.2,
-                      ),
-                    ),
+                   Text(
+  Supabase.instance.client.auth.currentUser?.userMetadata?['full_name'] ??
+  Supabase.instance.client.auth.currentUser?.userMetadata?['name'] ??
+  Supabase.instance.client.auth.currentUser?.email?.split('@')[0] ??
+  'User',
+  style: TextStyle(
+    fontSize: 30,
+    height: 1.0,
+    fontWeight: FontWeight.w800,
+    color: brown,
+    letterSpacing: -1.2,
+  ),
+),
                     const SizedBox(height: 10),
                     Row(
                       children: const [

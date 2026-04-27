@@ -27,4 +27,7 @@ class SignUpRequested extends AuthEvent {
 
 class LogoutRequested extends AuthEvent {}
 
-class GoogleSignInRequested extends AuthEvent {}
+class GoogleSignInRequested extends AuthEvent {
+  final String role;
+  GoogleSignInRequested({required this.role});
+}

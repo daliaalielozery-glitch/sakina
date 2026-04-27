@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sakina/core/theme/app_colors.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Myappbar extends StatelessWidget implements PreferredSizeWidget {
   const Myappbar({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final user = Supabase.instance.client.auth.currentUser;
+    final fullName = user?.userMetadata?['full_name'] ?? 
+                     user?.userMetadata?['name'] ?? 
+                     user?.email?.split('@')[0] ?? 
+                     'User';
+
     return Container(
       height: 80.h,
       padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -20,9 +27,8 @@ class Myappbar extends StatelessWidget implements PreferredSizeWidget {
       child: SafeArea(
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.center, // ✅ centers vertically
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -35,7 +41,7 @@ class Myappbar extends StatelessWidget implements PreferredSizeWidget {
                 ),
                 SizedBox(width: 10.w),
                 Text(
-                  'Basmala',
+                  fullName,
                   style: TextStyle(
                     fontSize: 20,
                     fontFamily: 'Manrope',
@@ -45,8 +51,6 @@ class Myappbar extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ],
             ),
-
-            // Notification icon
             IconButton(
               onPressed: () {},
               icon: const Icon(Icons.notifications),

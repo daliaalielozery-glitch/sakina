@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 
 class AuthRepository {
   final supabase = Supabase.instance.client;
@@ -41,20 +43,26 @@ class AuthRepository {
     await supabase.auth.signOut();
   }
 
-  Future<void> signInWithGoogle() async {
-    await supabase.auth.signInWithOAuth(
-      OAuthProvider.google,
-      redirectTo: _redirectUrl,
-      authScreenLaunchMode: kIsWeb
-          ? LaunchMode.platformDefault
-          : LaunchMode.externalApplication,
-    );
-  }
+  Future<void> signInWithGoogle({required String role}) async {
+  final redirectUrl = kIsWeb
+      ? 'http://localhost:${Uri.base.port}?role=$role'
+      : 'io.supabase.sakina://login-callback/';
+  await supabase.auth.signInWithOAuth(
+    OAuthProvider.google,
+    redirectTo: redirectUrl,
+    authScreenLaunchMode: kIsWeb
+        ? LaunchMode.platformDefault
+        : LaunchMode.externalApplication,
+  );
+}
 
-  Future<void> signInWithMicrosoft() async {
+Future<void> signInWithMicrosoft({required String role}) async {
+  final redirectUrl = kIsWeb
+      ? 'http://localhost:${Uri.base.port}?role=$role'
+      : 'io.supabase.sakina://login-callback/';
   await supabase.auth.signInWithOAuth(
     OAuthProvider.azure,
-    redirectTo: _redirectUrl,
+    redirectTo: redirectUrl,
     authScreenLaunchMode: kIsWeb
         ? LaunchMode.platformDefault
         : LaunchMode.externalApplication,

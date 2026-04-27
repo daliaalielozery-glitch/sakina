@@ -5,13 +5,25 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sakina/features/auth/bloc/auth_bloc.dart';
 import 'package:sakina/features/auth/repository/auth_repository.dart';
 import 'package:sakina/features/onboarding/main_onboarding.dart';
+import 'package:sakina/features/role/ui/role_screen.dart';
 import 'package:sakina/pages/home.dart';
 import 'package:sakina/bill_popup/utilitybill.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'main.dart';
+
+import 'package:sakina/landlord/host_profile_screen.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 class SakinaApp extends StatelessWidget {
   const SakinaApp({super.key});
+
+  Widget _getHomeScreen(Session? session) {
+    if (session == null) return MainOnboarding();
+    final role = session.user.userMetadata?['role'];
+    if (role == 'landlord') return HostProfileScreen();
+    if (role == 'tenant') return const HomePage();
+    return const RoleScreen();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,10 +41,12 @@ class SakinaApp extends StatelessWidget {
           localizationsDelegates: context.localizationDelegates,
           supportedLocales: context.supportedLocales,
           locale: context.locale,
-          home: session != null ? const HomePage() : MainOnboarding(),
+          home: _getHomeScreen(session),
           routes: {
             '/home': (context) => const HomePage(),
+            '/landlord-home': (context) => HostProfileScreen(),
             '/utility-bill': (context) => const UtilityBillScreen(),
+            '/role': (context) => const RoleScreen(),
           },
         ),
       ),
