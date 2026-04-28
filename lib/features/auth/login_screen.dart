@@ -160,15 +160,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     SizedBox(height: 40.h),
 
                     SocialAuthButtons(
-                      googleLabel: LocaleKeys.google_auth.tr(),
-                      appleLabel: LocaleKeys.apple_auth.tr(),
-                      onGoogleTap: () {
-                        context.read<AuthBloc>().add(GoogleSignInRequested());
-                      },
-                      onAppleTap: () {
-                        _signInWithMicrosoft();
-                      },
-                    ),
+  googleLabel: LocaleKeys.google_auth.tr(),
+  appleLabel: LocaleKeys.apple_auth.tr(),
+  onGoogleTap: () {
+  AuthRepository().signInWithGoogle(role: widget.role);
+},
+onAppleTap: () {
+  AuthRepository().signInWithMicrosoft(role: widget.role);
+},
+),
 
                     SizedBox(height: 40.h),
 

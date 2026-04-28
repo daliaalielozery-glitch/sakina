@@ -244,14 +244,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     SizedBox(height: 30.h),
 
                     SocialAuthButtons(
-                      googleLabel: LocaleKeys.signup_google_auth.tr(),
-                      appleLabel: LocaleKeys.signup_eduid_auth.tr(),
-                      onGoogleTap: () {
-                        context.read<AuthBloc>().add(GoogleSignInRequested());
-                      },
-
-                      onAppleTap: () {},
-                    ),
+  googleLabel: LocaleKeys.google_auth.tr(),
+  appleLabel: LocaleKeys.apple_auth.tr(),
+  onGoogleTap: () {
+    AuthRepository().signInWithGoogle(role: widget.role);
+  },
+  onAppleTap: () {
+    AuthRepository().signInWithMicrosoft(role: widget.role);
+  },
+),
 
                     SizedBox(height: 30.h),
 

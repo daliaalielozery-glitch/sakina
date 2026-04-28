@@ -4,18 +4,7 @@ import 'package:sakina/core/theme/app_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Myappbar extends StatelessWidget implements PreferredSizeWidget {
-  final String? title;
-  final bool showBackButton;
-  final bool showProfile;
-  final List<Widget>? actions;
-
-  const Myappbar({
-    super.key,
-    this.title,
-    this.showBackButton = false,
-    this.showProfile = true,
-    this.actions,
-  });
+  const Myappbar({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +19,7 @@ class Myappbar extends StatelessWidget implements PreferredSizeWidget {
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       decoration: BoxDecoration(
         color: AppColors.appbarColor,
-        borderRadius: const BorderRadius.only(
+        borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(20),
           bottomRight: Radius.circular(20),
         ),
@@ -43,50 +32,31 @@ class Myappbar extends StatelessWidget implements PreferredSizeWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                if (showBackButton)
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
-                    onPressed: () => Navigator.pop(context),
+                CircleAvatar(
+                  radius: 24.r,
+                  backgroundColor: AppColors.primaryBeig,
+                  backgroundImage: NetworkImage(
+                    'https://thumbs.dreamstime.com/b/avatar-profile-icon-flat-style-female-user-vector-illustration-isolated-background-women-sign-business-concept-321407993.jpg',
                   ),
-                if (showProfile) ...[
-                  CircleAvatar(
-                    radius: 24.r,
-                    backgroundColor: AppColors.primaryBeig,
-                    backgroundImage: const NetworkImage(
-                      'https://thumbs.dreamstime.com/b/avatar-profile-icon-flat-style-female-user-vector-illustration-isolated-background-women-sign-business-concept-321407993.jpg',
-                    ),
+                ),
+                SizedBox(width: 10.w),
+                Text(
+                  fullName,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontFamily: 'Manrope',
+                    fontWeight: FontWeight.w400,
+                    color: Colors.black,
                   ),
-                  SizedBox(width: 10.w),
-                  Text(
-                    fullName,
-                    style: TextStyle(
-                      fontSize: 20.sp,
-                      fontFamily: 'Manrope',
-                      fontWeight: FontWeight.w400,
-                      color: Colors.black,
-                    ),
-                  ),
-                ] else if (title != null)
-                  Text(
-                    title!,
-                    style: TextStyle(
-                      fontSize: 20.sp,
-                      fontFamily: 'Manrope',
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black,
-                    ),
-                  ),
+                ),
               ],
             ),
-            if (actions != null)
-              Row(children: actions!)
-            else
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.notifications),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
+            IconButton(
+              onPressed: () {},
+              icon: const Icon(Icons.notifications),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
           ],
         ),
       ),
@@ -95,4 +65,4 @@ class Myappbar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize => Size.fromHeight(80.h);
-}
+}
