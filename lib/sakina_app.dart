@@ -21,7 +21,7 @@ class SakinaApp extends StatelessWidget {
     if (session == null) return MainOnboarding();
     final role = session.user.userMetadata?['role'];
     if (role == 'landlord') return HostProfileScreen();
-    if (role == 'tenant') return const HomePage();
+    if (role == 'tenant') return const ButtomNavBarScreen();
     return const RoleScreen();
   }
 
@@ -43,7 +43,7 @@ class SakinaApp extends StatelessWidget {
           locale: context.locale,
           home: _getHomeScreen(session),
           routes: {
-'/home': (context) => const HomePage(),
+            '/home': (context) => const ButtomNavBarScreen(),
             '/landlord-home': (context) => HostProfileScreen(),
             '/utility-bill': (context) => const UtilityBillScreen(),
             '/role': (context) => const RoleScreen(),
