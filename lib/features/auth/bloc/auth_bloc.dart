@@ -13,10 +13,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<GoogleSignInRequested>(_onGoogleSignIn);
   }
 
-  //login started
   Future<void> _onLogin(LoginRequested event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
-
     try {
       await repository.login(
         email: event.email,
@@ -37,7 +35,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         password: event.password,
         fullName: event.fullName,
         university: event.university,
-        //add gender
       );
       emit(AuthSuccess());
     } catch (e) {
@@ -56,7 +53,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(AuthLoading());
     try {
-      await repository.signInWithGoogle();
+      await repository.signInWithGoogle(role: event.role);
       emit(AuthSuccess());
     } catch (e) {
       emit(AuthFailure(e.toString()));

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sakina/core/theme/app_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Myappbar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
@@ -25,6 +26,12 @@ class Myappbar extends StatelessWidget implements PreferredSizeWidget {
                      user?.email?.split('@')[0] ?? 
                      'User';
 
+    final user = Supabase.instance.client.auth.currentUser;
+    final fullName = user?.userMetadata?['full_name'] ?? 
+                     user?.userMetadata?['name'] ?? 
+                     user?.email?.split('@')[0] ?? 
+                     'User';
+
     return Container(
       height: 80.h,
       padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -38,6 +45,7 @@ class Myappbar extends StatelessWidget implements PreferredSizeWidget {
       child: SafeArea(
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Row(
@@ -95,4 +103,4 @@ class Myappbar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize => Size.fromHeight(80.h);
-}
+}
