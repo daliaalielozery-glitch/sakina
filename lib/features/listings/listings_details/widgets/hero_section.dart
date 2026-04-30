@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:sakina/core/theme/app_colors.dart';
 
 class HeroSection extends StatefulWidget {
+  const HeroSection({super.key});
+
   @override
   State<HeroSection> createState() => HeroSectionState();
 }
@@ -205,7 +207,7 @@ class HeroSectionState extends State<HeroSection> {
               const Text(
                 'Lalila Ahmed',
                 style: TextStyle(
-                  color: const Color(0xFF120A00),
+                  color: Color(0xFF120A00),
                   fontSize: 19,
                   fontFamily: 'Manrope',
                   fontWeight: FontWeight.w800,

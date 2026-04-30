@@ -10,6 +10,7 @@ import 'package:sakina/pages/favourite.dart';
 import 'package:sakina/pages/messages.dart';
 import 'package:sakina/pages/widgets/services_near_you.dart';
 import 'package:sakina/pages/widgets/top_match.dart';
+import 'package:sakina/features/map/screens/map_screen.dart';
 
 // ─── Entry point screen (replaces ButtomNavBarScreen) ────────────────────────
 class HomePage extends StatefulWidget {
@@ -305,7 +306,12 @@ class _HomeContent extends StatelessWidget {
                         ),
                       ),
                       GestureDetector(
-                        onTap: () {},
+                        onTap: () {
+  Navigator.push(
+    context,
+    MaterialPageRoute(builder: (_) => const MapSearchScreen()),
+  );
+},
                         child: Text(
                           'VIEW MAP',
                           style: TextStyle(

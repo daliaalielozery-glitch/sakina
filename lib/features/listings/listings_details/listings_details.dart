@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:sakina/core/theme/app_colors.dart';
 import 'package:sakina/features/listings/listings_details/widgets/community_voice_widget.dart';

@@ -31,7 +31,7 @@ class CommunityVoiceWidget extends StatelessWidget {
                 child: const Text(
                   'See all',
                   style: TextStyle(
-                    color: const Color(0xFF4C463C),
+                    color: Color(0xFF4C463C),
                     fontSize: 12,
                     fontFamily: 'Manrope',
                     fontWeight: FontWeight.w400,
