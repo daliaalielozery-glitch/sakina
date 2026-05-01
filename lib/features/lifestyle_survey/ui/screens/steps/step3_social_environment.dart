@@ -38,7 +38,7 @@ class StepSocialEnvironment extends StatelessWidget {
               );
             },
           ),
-          SizedBox(height: 99.h),
+          SizedBox(height: 16.h),
           Text(
             'Social Threshold',
             style: TextStyle(
