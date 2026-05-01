@@ -1,23 +1,36 @@
-
 import 'dart:ui' as ui;
- 
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:sakina/features/listings/models/listing_model.dart';
 
-
-// ── Location Map Widget ────────────────────────────────────────────────────────
 class LocationMapWidget extends StatelessWidget {
-  const LocationMapWidget({super.key});
- 
-  // Zamalek, Cairo coordinates
-  static const LatLng _listingLocation = LatLng(30.0626, 31.2197);
- 
+  final ListingModel listing;
+
+  const LocationMapWidget({
+    super.key,
+    required this.listing,
+  });
+
+  static const LatLng _fallbackLocation = LatLng(30.0444, 31.2357);
+
+  LatLng get _listingLocation {
+    final latitude = listing.latitude;
+    final longitude = listing.longitude;
+    if (latitude == null || longitude == null) return _fallbackLocation;
+    return LatLng(latitude, longitude);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final locationText = listing.address?.isNotEmpty == true
+        ? listing.address!
+        : listing.locationDisplay;
+
     return Center(
       child: Container(
-        padding: EdgeInsets.all(25),
+        padding: const EdgeInsets.all(25),
         width: 360,
         decoration: BoxDecoration(
           color: const Color(0xFFF0EBE0),
@@ -26,22 +39,35 @@ class LocationMapWidget extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Section Title ──
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 14.0 ),
-              child: Text(
-                'Location',
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1A1A1A),
-                  letterSpacing: -0.5,
-                  height: 1.1,
-                ),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Location',
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1A1A1A),
+                      letterSpacing: -0.5,
+                      height: 1.1,
+                    ),
+                  ),
+                  if (locationText.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      locationText,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF4C463C),
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
-       
-            // ── Map ──
             ClipRRect(
               borderRadius: BorderRadius.circular(24),
               child: SizedBox(
@@ -49,19 +75,17 @@ class LocationMapWidget extends StatelessWidget {
                 child: FlutterMap(
                   options: MapOptions(
                     initialCenter: _listingLocation,
-                    initialZoom: 15.0,
+                    initialZoom: 15,
                     interactionOptions: const InteractionOptions(
                       flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
                     ),
                   ),
                   children: [
-                    // OpenStreetMap tile layer (no API key required)
                     TileLayer(
                       urlTemplate:
                           'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.example.listing',
+                      userAgentPackageName: 'com.sakina.app',
                     ),
-                    // Listing pin marker
                     MarkerLayer(
                       markers: [
                         Marker(
@@ -83,11 +107,10 @@ class LocationMapWidget extends StatelessWidget {
     );
   }
 }
- 
-// ── Custom pin shape ───────────────────────────────────────────────────────────
+
 class _ListingPin extends StatelessWidget {
   const _ListingPin();
- 
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -114,7 +137,6 @@ class _ListingPin extends StatelessWidget {
             color: Colors.white,
           ),
         ),
-        // Pin tail triangle
         CustomPaint(
           size: const Size(12, 8),
           painter: _PinTailPainter(),
@@ -123,7 +145,7 @@ class _ListingPin extends StatelessWidget {
     );
   }
 }
- 
+
 class _PinTailPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -137,7 +159,7 @@ class _PinTailPainter extends CustomPainter {
       ..close();
     canvas.drawPath(path, paint);
   }
- 
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

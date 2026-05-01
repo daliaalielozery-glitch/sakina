@@ -1,17 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:sakina/features/listings/models/listing_model.dart';
 
 class CommunityVoiceWidget extends StatelessWidget {
-  const CommunityVoiceWidget({super.key});
+  final ListingModel listing;
+  final Future<void> Function(int rating, String comment)? onSubmitReview;
+
+  const CommunityVoiceWidget({
+    super.key,
+    required this.listing,
+    this.onSubmitReview,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final rating = listing.ratingValue;
+    final reviewCount = listing.resolvedReviewCount;
+
     return Container(
       color: const Color(0xFFF0EBE0),
       padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Title ──
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -25,149 +35,188 @@ class CommunityVoiceWidget extends StatelessWidget {
                   height: 1.33,
                 ),
               ),
-              // const Spacer(),
-              GestureDetector(
-                onTap: () {},
-                child: const Text(
-                  'See all',
-                  style: TextStyle(
-                    color: Color(0xFF4C463C),
-                    fontSize: 12,
-                    fontFamily: 'Manrope',
-                    fontWeight: FontWeight.w400,
-                    height: 1.33,
-                    letterSpacing: 1.20,
+              if (onSubmitReview != null)
+                GestureDetector(
+                  onTap: () => _openReviewSheet(context),
+                  child: const Text(
+                    'Write review',
+                    style: TextStyle(
+                      color: Color(0xFF4C463C),
+                      fontSize: 12,
+                      fontFamily: 'Manrope',
+                      fontWeight: FontWeight.w400,
+                      height: 1.33,
+                      letterSpacing: 1.20,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
-
           const SizedBox(height: 10),
-
-          // ── Rating row ──
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Stars
               Row(
-                children: List.generate(5, (i) {
-                  if (i < 4) {
-                    return const Icon(Icons.star_rounded,
-                        color: Color(0xFFF5A623), size: 26);
-                  } else {
-                    return const Icon(Icons.star_half_rounded,
-                        color: Color(0xFFF5A623), size: 26);
-                  }
-                }),
+                children: List.generate(
+                  5,
+                  (index) => _RatingStar(
+                    rating: rating,
+                    index: index,
+                  ),
+                ),
               ),
               const SizedBox(width: 6),
-              const Text(
-                '4.8',
-                style: TextStyle(
+              Text(
+                rating > 0 ? rating.toStringAsFixed(1) : 'New',
+                style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF1A1A1A),
                 ),
               ),
               const SizedBox(width: 8),
-              const Text(
-                '(42 Student Reviews)',
-                style: TextStyle(
+              Text(
+                reviewCount == 0
+                    ? '(No student reviews yet)'
+                    : '($reviewCount Student ${reviewCount == 1 ? 'Review' : 'Reviews'})',
+                style: const TextStyle(
                   fontSize: 13,
                   color: Color(0xFF7A7060),
                 ),
               ),
             ],
           ),
-
           const SizedBox(height: 28),
-
-          // ── Reviews ──
-          const _ReviewCard(
-            avatarAsset: 'https://plus.unsplash.com/premium_photo-1689565611422-b2156cc65e47?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OXx8bWFuJTIwcHJvZmlsZXxlbnwwfHwwfHx8MA%3D%3D',
-            name: 'Omar Khaled',
-            tag: 'ENGINEERING, YEAR 3',
-            review:
-                '"The study lounge is actually quiet. Best part is being able to wake up at 8:15 for an 8:30 lecture."',
-          ),
-          const SizedBox(height: 28),
-          const _ReviewCard(
-            avatarAsset: 'https://www.shutterstock.com/image-photo/portrait-beautiful-smiling-teenage-woman-600nw-2709723491.jpg',
-            name: 'Layla Mansour',
-            tag: 'MEDICINE, YEAR 1',
-            review:
-                '"Super secure for girls living alone. The building manager is very responsive whenever I had issues."',
-          ),
+          if (listing.reviews.isEmpty)
+            const Text(
+              'Reviews will appear here after students rate this listing.',
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 14,
+                fontFamily: 'Manrope',
+                fontWeight: FontWeight.w400,
+                height: 1.63,
+              ),
+            )
+          else
+            ...listing.reviews.expand(
+              (review) => [
+                _ReviewCard(review: review),
+                const SizedBox(height: 28),
+              ],
+            ),
         ],
+      ),
+    );
+  }
+
+  void _openReviewSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFFF0EBE0),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (_) => _WriteReviewSheet(
+        onSubmitReview: onSubmitReview!,
       ),
     );
   }
 }
 
-// ── Single Review Card ─────────────────────────────────────────────────────────
+class _RatingStar extends StatelessWidget {
+  final double rating;
+  final int index;
+
+  const _RatingStar({
+    required this.rating,
+    required this.index,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final value = index + 1;
+    final icon = rating >= value
+        ? Icons.star_rounded
+        : rating >= value - 0.5
+            ? Icons.star_half_rounded
+            : Icons.star_border_rounded;
+
+    return Icon(
+      icon,
+      color: const Color(0xFFF5A623),
+      size: 26,
+    );
+  }
+}
+
 class _ReviewCard extends StatelessWidget {
-  final String avatarAsset;
-  final String name;
-  final String tag;
-  final String review;
+  final ListingReview review;
 
   const _ReviewCard({
-    required this.avatarAsset,
-    required this.name,
-    required this.tag,
     required this.review,
   });
 
   @override
   Widget build(BuildContext context) {
+    final avatarUrl = review.reviewerAvatarUrl;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Avatar + name/tag row
         Row(
           children: [
             CircleAvatar(
               radius: 26,
               backgroundColor: const Color(0xFFD0C8B8),
-              backgroundImage: avatarAsset.startsWith('http')
-                  ? NetworkImage(avatarAsset)
-                  : AssetImage(avatarAsset) as ImageProvider,
+              backgroundImage:
+                  avatarUrl == null ? null : NetworkImage(avatarUrl),
+              child: avatarUrl == null
+                  ? const Icon(Icons.person, color: Color(0xFF7A7060))
+                  : null,
             ),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 14,
-                    fontFamily: 'Manrope',
-                    fontWeight: FontWeight.w400,
-                    height: 1.43,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    review.reviewerName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 14,
+                      fontFamily: 'Manrope',
+                      fontWeight: FontWeight.w400,
+                      height: 1.43,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  tag,
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 10,
-                    fontFamily: 'Manrope',
-                    fontWeight: FontWeight.w400,
-                    height: 1.50,
-                    letterSpacing: 1,
+                  const SizedBox(height: 2),
+                  Text(
+                    review.tag,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 10,
+                      fontFamily: 'Manrope',
+                      fontWeight: FontWeight.w400,
+                      height: 1.50,
+                      letterSpacing: 1,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
         const SizedBox(height: 12),
-        // Review text
         Text(
-          review,
+          review.comment.isNotEmpty
+              ? review.comment
+              : 'This student left a rating without a written review.',
           style: const TextStyle(
             color: Colors.black,
             fontSize: 14,
@@ -178,5 +227,169 @@ class _ReviewCard extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+class _WriteReviewSheet extends StatefulWidget {
+  final Future<void> Function(int rating, String comment) onSubmitReview;
+
+  const _WriteReviewSheet({
+    required this.onSubmitReview,
+  });
+
+  @override
+  State<_WriteReviewSheet> createState() => _WriteReviewSheetState();
+}
+
+class _WriteReviewSheetState extends State<_WriteReviewSheet> {
+  final _commentController = TextEditingController();
+  int _rating = 0;
+  bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomInset),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD8D0C0),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Write a Review',
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 24,
+                fontFamily: 'Manrope',
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: List.generate(
+                5,
+                (index) {
+                  final value = index + 1;
+                  return IconButton(
+                    onPressed: _isSubmitting
+                        ? null
+                        : () => setState(() => _rating = value),
+                    icon: Icon(
+                      _rating >= value
+                          ? Icons.star_rounded
+                          : Icons.star_border_rounded,
+                      color: const Color(0xFFF5A623),
+                      size: 34,
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _commentController,
+              enabled: !_isSubmitting,
+              maxLines: 5,
+              decoration: InputDecoration(
+                hintText: 'Share your experience with this listing...',
+                filled: true,
+                fillColor: const Color(0xFFF8F3EA),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFFD8D0C0)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFFD8D0C0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFF1A1A1A)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isSubmitting ? null : _submit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1A1A1A),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: 0,
+                ),
+                child: _isSubmitting
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        'Submit Review',
+                        style: TextStyle(
+                          fontFamily: 'Manrope',
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submit() async {
+    if (_rating == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please choose a star rating.')),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      await widget.onSubmitReview(_rating, _commentController.text);
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      Navigator.pop(context);
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Review submitted. Thank you!')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
 }

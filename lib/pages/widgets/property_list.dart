@@ -5,6 +5,7 @@ import 'package:sakina/features/listings/bloc/listings_event.dart';
 import 'package:sakina/features/listings/bloc/listings_state.dart';
 import 'package:sakina/features/listings/models/listing_model.dart';
 import 'package:sakina/features/listings/repository/listings_repository.dart';
+import 'package:sakina/features/listings/listings_details/listings_details.dart';
 
 class PropertyListingScreen extends StatefulWidget {
   const PropertyListingScreen({super.key});
@@ -157,9 +158,22 @@ class _PropertyListingScreenState extends State<PropertyListingScreen> {
     );
   }
 
+  void _openListingDetails(ListingModel listing) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RoomDetailScreen(
+          listing: listing,
+        ),
+      ),
+    );
+  }
+
   Widget _buildFeaturedCard(ListingModel listing) {
     return GestureDetector(
-      onTap: () {},
+      onTap: () {
+        _openListingDetails(listing);
+      },
       child: Container(
         width: 230,
         margin: const EdgeInsets.only(right: 14),
@@ -212,32 +226,31 @@ class _PropertyListingScreenState extends State<PropertyListingScreen> {
                   ),
                 ),
               ),
-              if (listing.has360Tour)
-                Positioned(
-                  top: 14,
-                  left: 14,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.threesixty, color: Colors.white, size: 12),
-                        SizedBox(width: 4),
-                        Text(
-                          '360°',
-                          style: TextStyle(color: Colors.white, fontSize: 10),
-                        ),
-                      ],
-                    ),
+              Positioned(
+                top: 14,
+                left: 14,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.threesixty, color: Colors.white, size: 12),
+                      SizedBox(width: 4),
+                      Text(
+                        '360 view',
+                        style: TextStyle(color: Colors.white, fontSize: 10),
+                      ),
+                    ],
                   ),
                 ),
+              ),
               Positioned(
                 top: 14,
                 right: 14,
@@ -251,7 +264,7 @@ class _PropertyListingScreenState extends State<PropertyListingScreen> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    'EGP ${listing.rentPrice.toStringAsFixed(0)}/mo',
+                    '${listing.priceDisplay}/mo',
                     style: const TextStyle(color: Colors.white, fontSize: 11),
                   ),
                 ),
@@ -296,6 +309,15 @@ class _PropertyListingScreenState extends State<PropertyListingScreen> {
                           ),
                         ],
                       ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'View details',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -307,115 +329,150 @@ class _PropertyListingScreenState extends State<PropertyListingScreen> {
   }
 
   Widget _buildNearbyCard(ListingModel listing) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
+    return GestureDetector(
+        onTap: () {
+          _openListingDetails(listing);
+        },
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: listing.coverImage != null
-                ? Image.network(
-                    listing.coverImage!,
-                    width: 70,
-                    height: 65,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      width: 70,
-                      height: 65,
-                      color: Colors.grey.shade200,
-                      child: const Icon(Icons.apartment, color: Colors.grey),
-                    ),
-                  )
-                : Container(
-                    width: 70,
-                    height: 65,
-                    color: Colors.grey.shade200,
-                    child: const Icon(Icons.apartment, color: Colors.grey),
-                  ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  listing.title,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade800,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'EGP ${listing.rentPrice.toStringAsFixed(0)}/mo',
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
-                ),
-                if (listing.locationDisplay.isNotEmpty)
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.location_on_outlined,
-                        size: 12,
-                        color: Colors.grey.shade400,
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: listing.coverImage != null
+                    ? Image.network(
+                        listing.coverImage!,
+                        width: 70,
+                        height: 65,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          width: 70,
+                          height: 65,
+                          color: Colors.grey.shade200,
+                          child:
+                              const Icon(Icons.apartment, color: Colors.grey),
+                        ),
+                      )
+                    : Container(
+                        width: 70,
+                        height: 65,
+                        color: Colors.grey.shade200,
+                        child: const Icon(Icons.apartment, color: Colors.grey),
                       ),
-                      const SizedBox(width: 2),
-                      Expanded(
-                        child: Text(
-                          listing.locationDisplay,
-                          style: TextStyle(
-                            fontSize: 12,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      listing.title,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade800,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${listing.priceDisplay}/mo',
+                      style:
+                          TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                    ),
+                    if (listing.locationDisplay.isNotEmpty)
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.location_on_outlined,
+                            size: 12,
                             color: Colors.grey.shade400,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          const SizedBox(width: 2),
+                          Expanded(
+                            child: Text(
+                              listing.locationDisplay,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade400,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    if (listing.nearbyUniversities != null &&
+                        listing.nearbyUniversities!.isNotEmpty)
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.school_outlined,
+                            size: 12,
+                            color: Colors.grey.shade400,
+                          ),
+                          const SizedBox(width: 2),
+                          Expanded(
+                            child: Text(
+                              listing.nearbyUniversities!,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey.shade400,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'View details',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade700,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.threesixty,
+                          size: 13,
+                          color: Colors.grey.shade500,
                         ),
-                      ),
-                    ],
-                  ),
-                if (listing.nearbyUniversities != null &&
-                    listing.nearbyUniversities!.isNotEmpty)
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.school_outlined,
-                        size: 12,
-                        color: Colors.grey.shade400,
-                      ),
-                      const SizedBox(width: 2),
-                      Expanded(
-                        child: Text(
-                          listing.nearbyUniversities!,
+                        const SizedBox(width: 4),
+                        Text(
+                          '360 view',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey.shade400,
+                            color: Colors.grey.shade500,
+                            fontWeight: FontWeight.w600,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.grey),
+            ],
           ),
-          const Icon(Icons.chevron_right, color: Colors.grey),
-        ],
-      ),
-    );
+        ));
   }
 }
