@@ -1,81 +1,56 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'add_listing_screen.dart';
 import 'listing_details_screen.dart';
 import 'host_profile_screen.dart';
 
-class Listing {
-  final String title;
-  final String location;
-  final String price;
-  final String beds;
-  final String tag;
-  final String imageUrl;
-
-  const Listing({
-    required this.title,
-    required this.location,
-    required this.price,
-    required this.beds,
-    required this.tag,
-    required this.imageUrl,
-  });
-}
-
-class HostStats {
-  final int totalListings;
-  final int activeTenants;
-  final int pendingRequests;
-
-  const HostStats({
-    required this.totalListings,
-    required this.activeTenants,
-    required this.pendingRequests,
-  });
-}
-
-final HostStats dummyStats = const HostStats(
-  totalListings: 12,
-  activeTenants: 28,
-  pendingRequests: 5,
-);
-
-final List<Listing> dummyListings = const [
-  Listing(
-    title: "The Maadi Garden Suite",
-    location: "Street 9, Maadi, Cairo",
-    price: "14,500",
-    beds: "2/3 beds occupied",
-    tag: "Available",
-    imageUrl:
-        "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600",
-  ),
-  Listing(
-    title: "Zamalek Heritage Loft",
-    location: "Ismail Mohamed St, Zamalek",
-    price: "22,000",
-    beds: "0/2 beds occupied",
-    tag: "Available",
-    imageUrl: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600",
-  ),
-  Listing(
-    title: "New Cairo Studio",
-    location: "5th Settlement",
-    price: "9,800",
-    beds: "1/1 beds occupied",
-    tag: "FULLY BOOKED",
-    imageUrl:
-        "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600",
-  ),
-];
-
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  final supabase = Supabase.instance.client;
+  List<Map<String, dynamic>> _listings = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadListings();
+  }
+
+  Future<void> _loadListings() async {
+    setState(() => _isLoading = true);
+    try {
+      final landlordId = supabase.auth.currentUser?.id;
+      final response = await supabase
+          .from('property_listings')
+          .select()
+          .eq('landlord_id', landlordId!)
+          .order('created_at', ascending: false);
+
+      setState(() {
+        _listings = List<Map<String, dynamic>>.from(response);
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  String get _userName =>
+      supabase.auth.currentUser?.userMetadata?['full_name'] ??
+      supabase.auth.currentUser?.userMetadata?['name'] ??
+      supabase.auth.currentUser?.email?.split('@')[0] ??
+      'User';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5EFE6),
-
       body: SafeArea(
         child: Column(
           children: [
@@ -91,16 +66,13 @@ class DashboardScreen extends StatelessWidget {
                       color: const Color(0xFF1A0F0A),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
-                      Icons.person,
-                      color: Colors.white,
-                      size: 20,
-                    ),
+                    child:
+                        const Icon(Icons.person, color: Colors.white, size: 20),
                   ),
                   const SizedBox(width: 10),
-                  const Text(
-                    "Khaled",
-                    style: TextStyle(
+                  Text(
+                    _userName,
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                       fontFamily: "Manrope",
@@ -119,8 +91,8 @@ class DashboardScreen extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
+                  children: [
+                    const Text(
                       "WELCOME BACK",
                       style: TextStyle(
                         fontSize: 11,
@@ -129,10 +101,10 @@ class DashboardScreen extends StatelessWidget {
                         fontFamily: "Manrope",
                       ),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
-                      "Good morning,\nkhaled.",
-                      style: TextStyle(
+                      "Good morning,\n$_userName.",
+                      style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
                         fontFamily: "Manrope",
@@ -149,33 +121,33 @@ class DashboardScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
-                children: const [
+                children: [
                   Expanded(
                     child: StatCard(
                       icon: Icons.home_work_outlined,
-                      number: "12",
+                      number: _listings.length.toString(),
                       label: "Total Listings",
                       bg: Colors.white,
-                      textColor: Color(0xFF1A0F0A),
-                      iconColor: Color(0xFF1A0F0A),
+                      textColor: const Color(0xFF1A0F0A),
+                      iconColor: const Color(0xFF1A0F0A),
                     ),
                   ),
-                  SizedBox(width: 10),
-                  Expanded(
+                  const SizedBox(width: 10),
+                  const Expanded(
                     child: StatCard(
                       icon: Icons.group_outlined,
-                      number: "28",
+                      number: "0",
                       label: "Active Tenants",
                       bg: Color(0xFF1A0F0A),
                       textColor: Colors.white,
                       iconColor: Colors.white,
                     ),
                   ),
-                  SizedBox(width: 10),
-                  Expanded(
+                  const SizedBox(width: 10),
+                  const Expanded(
                     child: StatCard(
                       icon: Icons.assignment_outlined,
-                      number: "05",
+                      number: "0",
                       label: "Pending Requests",
                       bg: Color(0xFFEDE8E0),
                       textColor: Color(0xFF1A0F0A),
@@ -231,22 +203,62 @@ class DashboardScreen extends StatelessWidget {
 
             // LISTINGS
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: dummyListings.map((listing) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: ListingCard(
-                      title: listing.title,
-                      location: listing.location,
-                      price: listing.price,
-                      beds: listing.beds,
-                      tag: listing.tag,
-                      imageUrl: listing.imageUrl,
-                    ),
-                  );
-                }).toList(),
-              ),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _listings.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'No listings yet.\nTap + to add your first listing!',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontFamily: "Manrope",
+                            ),
+                          ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: _loadListings,
+                          child: ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: _listings.length,
+                            itemBuilder: (context, index) {
+                              final listing = _listings[index];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => ListingDetailsScreen(
+                                          listingId:
+                                              listing['listing_id'], // ده المهم
+                                          title: listing['title'] ?? '',
+                                          location:
+                                              listing['description'] ?? '',
+                                          price:
+                                              listing['rent_price'].toString(),
+                                          beds:
+                                              '${listing['available_rooms']} rooms',
+                                          tag: listing['status'] ?? '',
+                                          imageUrl: listing['image_url'] ?? '',
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  child: ListingCard(
+                                    title: listing['title'] ?? '',
+                                    location: listing['description'] ?? '',
+                                    price: listing['rent_price'].toString(),
+                                    beds: '${listing['available_rooms']} rooms',
+                                    tag: listing['status'] ?? '',
+                                    imageUrl: listing['image_url'] ?? '',
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
             ),
           ],
         ),
@@ -255,11 +267,13 @@ class DashboardScreen extends StatelessWidget {
       // FLOATING BUTTON
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF1A0F0A),
-        onPressed: () {
-          Navigator.push(
+        onPressed: () async {
+          await Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => AddListingScreen()),
+            MaterialPageRoute(builder: (_) => const AddListingScreen()),
           );
+          // Refresh after adding
+          _loadListings();
         },
         child: const Icon(Icons.add, color: Colors.white),
       ),
@@ -279,12 +293,10 @@ class DashboardScreen extends StatelessWidget {
             NavItem(Icons.grid_view, "DASHBOARD", active: true),
             NavItem(Icons.chat_bubble_outline, "MESSAGES", active: false),
             GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const HostProfileScreen()),
-                );
-              },
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const HostProfileScreen()),
+              ),
               child: NavItem(Icons.person_outline, "PROFILE", active: false),
             ),
           ],
@@ -380,15 +392,13 @@ class ListingCard extends StatelessWidget {
                     height: 160,
                     width: double.infinity,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        height: 160,
-                        color: const Color(0xFFE0D8CC),
-                        child: const Center(child: Icon(Icons.image, size: 40)),
-                      );
-                    },
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
+                    errorBuilder: (_, __, ___) => Container(
+                      height: 160,
+                      color: const Color(0xFFE0D8CC),
+                      child: const Center(child: Icon(Icons.image, size: 40)),
+                    ),
+                    loadingBuilder: (_, child, progress) {
+                      if (progress == null) return child;
                       return Container(
                         height: 160,
                         color: const Color(0xFFE0D8CC),
@@ -404,7 +414,6 @@ class ListingCard extends StatelessWidget {
                     child: const Center(child: Icon(Icons.image, size: 40)),
                   ),
           ),
-
           Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
@@ -434,31 +443,21 @@ class ListingCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Text(
-                            beds,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontFamily: "Manrope",
-                            ),
-                          ),
+                          Text(beds,
+                              style: const TextStyle(
+                                  fontSize: 12, fontFamily: "Manrope")),
                           if (tag.isNotEmpty) ...[
                             const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
+                                  horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFE0D8CC),
                                 borderRadius: BorderRadius.circular(4),
                               ),
-                              child: Text(
-                                tag,
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  fontFamily: "Manrope",
-                                ),
-                              ),
+                              child: Text(tag,
+                                  style: const TextStyle(
+                                      fontSize: 10, fontFamily: "Manrope")),
                             ),
                           ],
                         ],
@@ -467,10 +466,8 @@ class ListingCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1A0F0A),
                     borderRadius: BorderRadius.circular(8),
@@ -488,30 +485,13 @@ class ListingCard extends StatelessWidget {
               ],
             ),
           ),
-
           Padding(
             padding: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
             child: GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ListingDetailsScreen(
-                      title: title,
-                      location: location,
-                      price: price,
-                      beds: beds,
-                      tag: tag,
-                    ),
-                  ),
-                );
-              },
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: const Color(0xFF1A0F0A),
                   borderRadius: BorderRadius.circular(8),
@@ -547,14 +527,9 @@ class NavItem extends StatelessWidget {
       children: [
         Icon(icon, color: Colors.white),
         const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 10,
-            fontFamily: "Manrope",
-          ),
-        ),
+        Text(label,
+            style: const TextStyle(
+                color: Colors.white, fontSize: 10, fontFamily: "Manrope")),
       ],
     );
   }

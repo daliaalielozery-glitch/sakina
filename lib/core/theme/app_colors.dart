@@ -17,8 +17,7 @@ class AppColors {
 
 
 class AppTheme {
-  static  TextStyle bodyText = TextStyle(fontSize: 20.sp);
-  static  TextStyle titleText = TextStyle(fontSize: 32 .sp,fontWeight: FontWeight.w700 );
-
+  static TextStyle bodyText = TextStyle(fontSize: 16.sp);
+static TextStyle titleText = TextStyle(fontSize: 24.sp, fontWeight: FontWeight.w700);
 }
 

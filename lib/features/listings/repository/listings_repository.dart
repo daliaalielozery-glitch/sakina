@@ -7,11 +7,7 @@ class ListingsRepository {
   Future<List<ListingModel>> getAllListings() async {
     final response = await supabase
         .from('property_listings')
-        .select('''
-          *,
-          property_image ( image_id, listing_id, image_url, is_360_tour, uploaded_at ),
-          location ( location_id, listing_id, latitude, longitude, address, street, district, city, nearby_universities )
-        ''')
+        .select()
         .eq('status', 'available')
         .order('created_at', ascending: false);
 
@@ -21,11 +17,7 @@ class ListingsRepository {
   Future<List<ListingModel>> getListingsByType(String type) async {
     final response = await supabase
         .from('property_listings')
-        .select('''
-          *,
-          property_image ( image_id, listing_id, image_url, is_360_tour, uploaded_at ),
-          location ( location_id, listing_id, latitude, longitude, address, street, district, city, nearby_universities )
-        ''')
+        .select()
         .eq('property_type', type)
         .eq('status', 'available')
         .order('created_at', ascending: false);
@@ -36,11 +28,7 @@ class ListingsRepository {
   Future<List<ListingModel>> searchListings(String query) async {
     final response = await supabase
         .from('property_listings')
-        .select('''
-          *,
-          property_image ( image_id, listing_id, image_url, is_360_tour, uploaded_at ),
-          location ( location_id, listing_id, latitude, longitude, address, street, district, city, nearby_universities )
-        ''')
+        .select()
         .or('title.ilike.%$query%,description.ilike.%$query%')
         .eq('status', 'available')
         .order('created_at', ascending: false);

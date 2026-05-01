@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:sakina/core/theme/app_colors.dart';
 import 'package:sakina/features/onboarding/ui/widget/back_button.dart';
@@ -32,71 +31,89 @@ class CustomOnboarding extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final h = MediaQuery.of(context).size.height;
+    final w = MediaQuery.of(context).size.width;
+    final cardHeight = h * 0.50;
+    final titleSize = (w * 0.045).clamp(24.0, 40.0);
+    final bodySize = (w * 0.028).clamp(16.0, 24.0);
+    final svgHeight = (h * 0.03).clamp(18.0, 32.0);
+    final hPad = (w * 0.05).clamp(16.0, 40.0);
+
     return Stack(
       fit: StackFit.expand,
       children: [
+        // ── Background image ───────────────────────────────────────────
         Positioned(
           top: 0,
           left: 0,
           right: 0,
-          child: Image.asset(
-            url,
-            fit: BoxFit.cover,
-            width: 1.sw,
-          ),
+          bottom: cardHeight - 40,
+          child: Image.asset(url, fit: BoxFit.cover),
         ),
+
+        // ── Bottom card ────────────────────────────────────────────────
         Positioned(
           bottom: 0,
+          left: 0,
+          right: 0,
+          height: cardHeight,
           child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
-            width: 1.sw,
-            height: 480.h,
-            decoration: ShapeDecoration(
+            decoration: BoxDecoration(
               color: AppColors.primaryColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(50),
-                  topRight: Radius.circular(50),
-                ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(40),
+                topRight: Radius.circular(40),
               ),
             ),
+            padding: EdgeInsets.fromLTRB(hPad, 16, hPad, 60),
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const Spacer(flex: 2),
                 Text(
                   title,
-                  style: AppTheme.titleText,
+                  style: TextStyle(
+                    fontSize: titleSize,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.fontColor,
+                  ),
                   textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const Spacer(flex: 1),
                 Text(
                   description,
-                  style: AppTheme.bodyText,
+                  style: TextStyle(
+                    fontSize: bodySize,
+                    color: AppColors.fontColor,
+                    height: 1.4,
+                  ),
                   textAlign: TextAlign.center,
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const Spacer(flex: 2),
-                SvgPicture.asset(stepPath),
-                const Spacer(flex: 4),
+                SvgPicture.asset(stepPath, height: svgHeight),
               ],
             ),
           ),
         ),
+
+        // ── Navigation buttons ─────────────────────────────────────────
         Positioned(
-          bottom: 30.h,
-          left: 20.w,
-          right: 20.w,
+          bottom: 16,
+          left: hPad,
+          right: hPad,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               SizedBox(
-                width: 80.w,
+                width: 80,
                 child: backButton
                     ? CustomBackButton(backTapped: backTapped ?? () {})
                     : const SizedBox.shrink(),
               ),
               SizedBox(
-                width: 100.w,
+                width: 100,
                 child: nextButton
                     ? CustomNextButton(tappedNext: nextTapped)
                     : const SizedBox.shrink(),
@@ -104,6 +121,7 @@ class CustomOnboarding extends StatelessWidget {
             ],
           ),
         ),
+
         if (getStartButton) const GoToHomeButton(),
       ],
     );

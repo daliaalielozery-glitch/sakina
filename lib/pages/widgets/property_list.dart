@@ -6,27 +6,6 @@ import 'package:sakina/features/listings/bloc/listings_state.dart';
 import 'package:sakina/features/listings/models/listing_model.dart';
 import 'package:sakina/features/listings/repository/listings_repository.dart';
 
-// void main() {
-//   runApp(const MyApp());
-// }
-
-// class MyApp extends StatelessWidget {
-//   const MyApp({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return MaterialApp(
-//       title: 'Property App',
-//       debugShowCheckedModeBanner: false,
-//       theme: ThemeData(
-//         fontFamily: 'Poppins',
-//         scaffoldBackgroundColor: const Color(0xFFF2EDE8),
-//       ),
-//       home: const PropertyListingScreen(),
-//     );
-//   }
-// }
-
 class PropertyListingScreen extends StatefulWidget {
   const PropertyListingScreen({super.key});
 
@@ -138,8 +117,8 @@ class _PropertyListingScreenState extends State<PropertyListingScreen> {
               onTap: () {
                 setState(() => _selectedTab = index);
                 context.read<ListingsBloc>().add(
-                  LoadListingsByType(index == 0 ? 'apartment' : 'room'),
-                );
+                      LoadListingsByType(index == 0 ? 'apartment' : 'room'),
+                    );
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
@@ -408,7 +387,8 @@ class _PropertyListingScreenState extends State<PropertyListingScreen> {
                       ),
                     ],
                   ),
-                if (listing.location?.nearbyUniversities.isNotEmpty == true)
+                if (listing.nearbyUniversities != null &&
+                    listing.nearbyUniversities!.isNotEmpty)
                   Row(
                     children: [
                       Icon(
@@ -419,7 +399,7 @@ class _PropertyListingScreenState extends State<PropertyListingScreen> {
                       const SizedBox(width: 2),
                       Expanded(
                         child: Text(
-                          listing.location!.nearbyUniversities,
+                          listing.nearbyUniversities!,
                           style: TextStyle(
                             fontSize: 11,
                             color: Colors.grey.shade400,

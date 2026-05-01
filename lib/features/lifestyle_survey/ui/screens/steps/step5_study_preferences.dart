@@ -46,7 +46,7 @@ class StepStudyPreferences extends StatelessWidget {
               );
             },
           ),
-          SizedBox(height: 111.h),
+           SizedBox(height: 20.h),
           Text(
             'Preferred study time',
             style: TextStyle(

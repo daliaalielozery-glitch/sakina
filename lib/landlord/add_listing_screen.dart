@@ -1,7 +1,10 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'host_profile_screen.dart';
 
 class AppColors {
@@ -26,11 +29,21 @@ class AddListingScreen extends StatefulWidget {
 }
 
 class _AddListingScreenState extends State<AddListingScreen> {
+  final supabase = Supabase.instance.client;
+
+  // Controllers
+  final _titleController = TextEditingController();
+  final _priceController = TextEditingController();
+  final _locationController = TextEditingController();
+  final _descriptionController = TextEditingController();
+
   String _policy = 'Female Only';
   String _propertyType = 'Apartment';
   String _university = 'American University in Cairo (AUC)';
   final List<XFile> _photos = [];
+  final List<Uint8List> _webImages = [];
   final ImagePicker _picker = ImagePicker();
+  bool _isLoading = false;
 
   final _amenities = <String, bool>{
     'Wi-Fi': true,
@@ -50,20 +63,32 @@ class _AddListingScreenState extends State<AddListingScreen> {
     'Parking': Icons.local_parking_outlined,
   };
 
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _priceController.dispose();
+    _locationController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
   Future<void> _pickImage(ImageSource source) async {
     try {
       final XFile? image = await _picker.pickImage(source: source);
       if (image != null) {
-        setState(() {
+        if (kIsWeb) {
+          final bytes = await image.readAsBytes();
+          _webImages.add(bytes);
+        } else {
           _photos.add(image);
-        });
+        }
+        setState(() {});
       }
     } catch (e) {
       debugPrint('Error picking image: $e');
     }
   }
 
-  //choose imagesource card
   void _showImageSourceDialog() {
     showModalBottomSheet(
       context: context,
@@ -118,9 +143,9 @@ class _AddListingScreenState extends State<AddListingScreen> {
   }
 
   Widget _imageSourceOption({
-    required IconData icon, // Camera or Gallery icon
-    required String label, // "Camera" or "Gallery"
-    required VoidCallback onTap, // Function when tapped
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -135,17 +160,106 @@ class _AddListingScreenState extends State<AddListingScreen> {
           children: [
             Icon(icon, size: 32, color: AppColors.textPrimary),
             const SizedBox(height: 8),
-            Text(
-              label,
-              style: GoogleFonts.manrope(
-                fontSize: 14,
-                color: AppColors.textPrimary,
-              ),
-            ),
+            Text(label,
+                style: GoogleFonts.manrope(
+                    fontSize: 14, color: AppColors.textPrimary)),
           ],
         ),
       ),
     );
+  }
+
+  // ✅ Publish to Supabase
+  Future<void> _publishListing() async {
+    if (_titleController.text.isEmpty ||
+        _priceController.text.isEmpty ||
+        _locationController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all required fields')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Upload image to Supabase Storage
+      String? imageUrl;
+
+      final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+// 🌐 Web
+      if (kIsWeb && _webImages.isNotEmpty) {
+        await supabase.storage
+            .from('listing-images')
+            .uploadBinary(fileName, _webImages.first);
+
+        imageUrl =
+            supabase.storage.from('listing-images').getPublicUrl(fileName);
+
+// 📱 Mobile
+      } else if (_photos.isNotEmpty) {
+        final file = File(_photos.first.path);
+
+        await supabase.storage.from('listing-images').upload(fileName, file);
+
+        imageUrl =
+            supabase.storage.from('listing-images').getPublicUrl(fileName);
+      }
+      print("Image URL: $imageUrl");
+
+      final user = supabase.auth.currentUser;
+      if (user == null) {
+        throw Exception("User not logged in");
+      }
+      final landlordId = user.id;
+
+      // Insert into listings table
+      final response = await supabase
+          .from('property_listings')
+          .insert({
+            'landlord_id': landlordId,
+            'title': _titleController.text,
+            'description': _descriptionController.text,
+            'rent_price':
+                double.parse(_priceController.text.replaceAll(',', '')),
+            'property_type': _propertyType.toLowerCase(),
+            'available_rooms': 1,
+            'has_360_tour': false,
+            'status': 'available',
+            'image_url': imageUrl,
+          })
+          .select()
+          .single();
+      final listingId = response['listing_id'];
+
+      // Insert into location table
+      await supabase.from('location').insert({
+        'listing_id': listingId, // will be updated after we get the listing_id
+        'address': _locationController.text,
+        'street': '',
+        'district': _locationController.text,
+        'city': 'Cairo',
+        'nearby_universities': _university,
+        'latitude': 30.0444,
+        'longitude': 31.2357,
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Listing published successfully! 🎉')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -202,37 +316,38 @@ class _AddListingScreenState extends State<AddListingScreen> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.border, width: 1.5),
               ),
-              child: _photos.isNotEmpty
+              child: (_photos.isNotEmpty || _webImages.isNotEmpty)
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.file(
-                        File(_photos.first.path),
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: 160,
-                      ),
+                      child: kIsWeb
+                          ? Image.memory(
+                              _webImages.first,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: double.infinity,
+                            )
+                          : Image.file(
+                              File(_photos.first.path),
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: double.infinity,
+                            ),
                     )
                   : Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(
-                          Icons.add_a_photo_outlined,
-                          size: 28,
-                          color: AppColors.textSecondary,
-                        ),
+                        const Icon(Icons.add_a_photo_outlined,
+                            size: 28, color: AppColors.textSecondary),
                         const SizedBox(height: 8),
-                        Text(
-                          'Upload Primary Photo',
-                          style: _bodyMedium().copyWith(
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
+                        Text('Upload Primary Photo',
+                            style: GoogleFonts.manrope(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textPrimary)),
                         const SizedBox(height: 4),
-                        Text(
-                          'High resolution landscape preferred',
-                          style: _caption(),
-                        ),
+                        Text('High resolution landscape preferred',
+                            style: GoogleFonts.manrope(
+                                fontSize: 11, color: AppColors.textSecondary)),
                       ],
                     ),
             ),
@@ -254,17 +369,12 @@ class _AddListingScreenState extends State<AddListingScreen> {
                         decoration: BoxDecoration(
                           color: AppColors.surface,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: AppColors.border,
-                            width: 0.5,
-                          ),
+                          border:
+                              Border.all(color: AppColors.border, width: 0.5),
                         ),
                         child: const Center(
-                          child: Icon(
-                            Icons.add,
-                            size: 24,
-                            color: AppColors.textSecondary,
-                          ),
+                          child: Icon(Icons.add,
+                              size: 24, color: AppColors.textSecondary),
                         ),
                       ),
                     );
@@ -272,10 +382,6 @@ class _AddListingScreenState extends State<AddListingScreen> {
                   return Container(
                     width: 80,
                     margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
                     child: Stack(
                       children: [
                         ClipRRect(
@@ -293,7 +399,11 @@ class _AddListingScreenState extends State<AddListingScreen> {
                           child: GestureDetector(
                             onTap: () {
                               setState(() {
-                                _photos.removeAt(index);
+                                if (kIsWeb) {
+                                  _webImages.removeAt(index);
+                                } else {
+                                  _photos.removeAt(index);
+                                }
                               });
                             },
                             child: Container(
@@ -302,11 +412,8 @@ class _AddListingScreenState extends State<AddListingScreen> {
                                 color: Colors.redAccent,
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(
-                                Icons.close,
-                                size: 12,
-                                color: Colors.white,
-                              ),
+                              child: const Icon(Icons.close,
+                                  size: 12, color: Colors.white),
                             ),
                           ),
                         ),
@@ -314,40 +421,6 @@ class _AddListingScreenState extends State<AddListingScreen> {
                     ),
                   );
                 },
-              ),
-            ),
-          ] else ...[
-            const SizedBox(height: 10),
-            GestureDetector(
-              onTap: _showImageSourceDialog,
-              child: Container(
-                height: 80,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.border, width: 0.5),
-                ),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.add,
-                        size: 24,
-                        color: AppColors.textSecondary,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Add More Photos',
-                        style: GoogleFonts.manrope(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ),
             ),
           ],
@@ -366,17 +439,20 @@ class _AddListingScreenState extends State<AddListingScreen> {
           _InputField(
             label: 'PROPERTY TITLE',
             hint: 'e.g., Sun-drenched Studio near AUC',
+            controller: _titleController,
           ),
           const SizedBox(height: 14),
           _InputField(
             label: 'MONTHLY RENT (EGP)',
             hint: '8,500',
+            controller: _priceController,
             keyboardType: TextInputType.number,
           ),
           const SizedBox(height: 14),
           _InputField(
             label: 'LOCATION (AREA/NEIGHBORHOOD)',
             hint: 'New Cairo, Fifth Settlement',
+            controller: _locationController,
           ),
           const SizedBox(height: 14),
           _DropdownField(
@@ -397,15 +473,12 @@ class _AddListingScreenState extends State<AddListingScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _SectionHeader(title: 'Student\nFocus', step: 'STEP 03 / 06'),
-          Text(
-            'POLICY',
-            style: GoogleFonts.manrope(
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary,
-              letterSpacing: 0.08,
-            ),
-          ),
+          Text('POLICY',
+              style: GoogleFonts.manrope(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textSecondary,
+                  letterSpacing: 0.08)),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
@@ -415,28 +488,21 @@ class _AddListingScreenState extends State<AddListingScreen> {
               return GestureDetector(
                 onTap: () => setState(() => _policy = p),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   decoration: BoxDecoration(
                     color: active ? AppColors.goldLight : AppColors.surface,
                     borderRadius: BorderRadius.circular(100),
                     border: Border.all(
-                      color: active ? AppColors.gold : AppColors.border,
-                      width: 0.5,
-                    ),
+                        color: active ? AppColors.gold : AppColors.border,
+                        width: 0.5),
                   ),
-                  child: Text(
-                    p,
-                    style: GoogleFonts.manrope(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w400,
-                      color: active
-                          ? AppColors.goldText
-                          : AppColors.textPrimary,
-                    ),
-                  ),
+                  child: Text(p,
+                      style: GoogleFonts.manrope(
+                          fontSize: 13,
+                          color: active
+                              ? AppColors.goldText
+                              : AppColors.textPrimary)),
                 ),
               );
             }).toList(),
@@ -473,39 +539,30 @@ class _AddListingScreenState extends State<AddListingScreen> {
               return GestureDetector(
                 onTap: () => setState(() => _amenities[e.key] = !active),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
                     color: active ? AppColors.goldLight : AppColors.surface,
                     borderRadius: BorderRadius.circular(100),
                     border: Border.all(
-                      color: active ? AppColors.gold : AppColors.border,
-                      width: 0.5,
-                    ),
+                        color: active ? AppColors.gold : AppColors.border,
+                        width: 0.5),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        _amenityIcons[e.key] ?? Icons.check,
-                        size: 14,
-                        color: active
-                            ? AppColors.goldText
-                            : AppColors.textSecondary,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        e.key,
-                        style: GoogleFonts.manrope(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w400,
+                      Icon(_amenityIcons[e.key] ?? Icons.check,
+                          size: 14,
                           color: active
                               ? AppColors.goldText
-                              : AppColors.textPrimary,
-                        ),
-                      ),
+                              : AppColors.textSecondary),
+                      const SizedBox(width: 6),
+                      Text(e.key,
+                          style: GoogleFonts.manrope(
+                              fontSize: 13,
+                              color: active
+                                  ? AppColors.goldText
+                                  : AppColors.textPrimary)),
                     ],
                   ),
                 ),
@@ -527,22 +584,16 @@ class _AddListingScreenState extends State<AddListingScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Location',
-                style: GoogleFonts.manrope(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w300,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              Text(
-                'Heliopolis, Street 12',
-                style: GoogleFonts.manrope(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
+              Text('Location',
+                  style: GoogleFonts.manrope(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w300,
+                      color: AppColors.textPrimary)),
+              Text('Heliopolis, Street 12',
+                  style: GoogleFonts.manrope(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w400)),
             ],
           ),
           const SizedBox(height: 16),
@@ -575,18 +626,14 @@ class _AddListingScreenState extends State<AddListingScreen> {
               border: Border.all(color: AppColors.border, width: 0.5),
             ),
             child: TextField(
+              controller: _descriptionController,
               maxLines: 5,
               style: GoogleFonts.manrope(
-                fontSize: 14,
-                color: AppColors.textPrimary,
-              ),
+                  fontSize: 14, color: AppColors.textPrimary),
               decoration: InputDecoration(
-                hintText:
-                    'Describe the atmosphere, proximity to campus, and what makes this listing unique for students…',
+                hintText: 'Describe the atmosphere, proximity to campus...',
                 hintStyle: GoogleFonts.manrope(
-                  fontSize: 13,
-                  color: AppColors.textHint,
-                ),
+                    fontSize: 13, color: AppColors.textHint),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.all(14),
               ),
@@ -605,56 +652,48 @@ class _AddListingScreenState extends State<AddListingScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () {}, //  Backend connects here
-              icon: const Icon(
-                Icons.send_outlined,
-                size: 16,
-                color: Colors.white,
-              ),
+              onPressed: _isLoading ? null : _publishListing,
+              icon: _isLoading
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2),
+                    )
+                  : const Icon(Icons.send_outlined,
+                      size: 16, color: Colors.white),
               label: Text(
-                'Publish Listing',
+                _isLoading ? 'Publishing...' : 'Publish Listing',
                 style: GoogleFonts.manrope(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white,
-                  letterSpacing: 0.01,
-                ),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.dark,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                    borderRadius: BorderRadius.circular(10)),
                 elevation: 0,
               ),
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            'STEP 06 / 06 — FINAL REVIEW',
-            style: GoogleFonts.manrope(
-              fontSize: 10,
-              color: AppColors.textSecondary,
-              letterSpacing: 0.05,
-            ),
-          ),
+          Text('STEP 06 / 06 – FINAL REVIEW',
+              style: GoogleFonts.manrope(
+                  fontSize: 10,
+                  color: AppColors.textSecondary,
+                  letterSpacing: 0.05)),
         ],
       ),
     );
   }
 
   Widget _divider() => Container(
-    height: 0.5,
-    color: AppColors.border,
-    margin: const EdgeInsets.only(top: 28),
-  );
-
-  TextStyle _bodyMedium() =>
-      GoogleFonts.manrope(fontSize: 14, color: AppColors.textPrimary);
-
-  TextStyle _caption() =>
-      GoogleFonts.manrope(fontSize: 11, color: AppColors.textSecondary);
+        height: 0.5,
+        color: AppColors.border,
+        margin: const EdgeInsets.only(top: 28),
+      );
 }
 
 class _TopBar extends StatelessWidget {
@@ -669,23 +708,17 @@ class _TopBar extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           GestureDetector(
-            onTap: () => Navigator.pop(context), //go back to dashboard
+            onTap: () => Navigator.pop(context),
             child: Row(
               children: [
-                const Icon(
-                  Icons.arrow_back,
-                  size: 18,
-                  color: AppColors.textPrimary,
-                ),
+                const Icon(Icons.arrow_back,
+                    size: 18, color: AppColors.textPrimary),
                 const SizedBox(width: 6),
-                Text(
-                  'Add Listing',
-                  style: GoogleFonts.manrope(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
+                Text('Add Listing',
+                    style: GoogleFonts.manrope(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textPrimary)),
               ],
             ),
           ),
@@ -696,11 +729,8 @@ class _TopBar extends StatelessWidget {
               shape: BoxShape.circle,
               border: Border.all(color: AppColors.border, width: 0.5),
             ),
-            child: const Icon(
-              Icons.more_horiz,
-              size: 16,
-              color: AppColors.textSecondary,
-            ),
+            child: const Icon(Icons.more_horiz,
+                size: 16, color: AppColors.textSecondary),
           ),
         ],
       ),
@@ -721,24 +751,18 @@ class _SectionHeader extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: GoogleFonts.manrope(
-              fontSize: 26,
-              fontWeight: FontWeight.w300,
-              color: AppColors.textPrimary,
-              height: 1.1,
-            ),
-          ),
-          Text(
-            step,
-            style: GoogleFonts.manrope(
-              fontSize: 11,
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w400,
-              letterSpacing: 0.04,
-            ),
-          ),
+          Text(title,
+              style: GoogleFonts.manrope(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w300,
+                  color: AppColors.textPrimary,
+                  height: 1.1)),
+          Text(step,
+              style: GoogleFonts.manrope(
+                  fontSize: 11,
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: 0.04)),
         ],
       ),
     );
@@ -748,10 +772,13 @@ class _SectionHeader extends StatelessWidget {
 class _InputField extends StatelessWidget {
   final String label;
   final String hint;
+  final TextEditingController controller;
   final TextInputType keyboardType;
+
   const _InputField({
     required this.label,
     required this.hint,
+    required this.controller,
     this.keyboardType = TextInputType.text,
   });
 
@@ -760,34 +787,26 @@ class _InputField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: GoogleFonts.manrope(
-            fontSize: 10,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textSecondary,
-            letterSpacing: 0.08,
-          ),
-        ),
+        Text(label,
+            style: GoogleFonts.manrope(
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textSecondary,
+                letterSpacing: 0.08)),
         const SizedBox(height: 6),
         TextField(
+          controller: controller,
           keyboardType: keyboardType,
-          style: GoogleFonts.manrope(
-            fontSize: 14,
-            color: AppColors.textPrimary,
-          ),
+          style:
+              GoogleFonts.manrope(fontSize: 14, color: AppColors.textPrimary),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: GoogleFonts.manrope(
-              fontSize: 14,
-              color: AppColors.textHint,
-            ),
+            hintStyle:
+                GoogleFonts.manrope(fontSize: 14, color: AppColors.textHint),
             filled: true,
             fillColor: AppColors.surface,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 12,
-            ),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: const BorderSide(color: AppColors.border, width: 0.5),
@@ -812,6 +831,7 @@ class _DropdownField extends StatelessWidget {
   final String value;
   final List<String> items;
   final ValueChanged<String?> onChanged;
+
   const _DropdownField({
     required this.label,
     required this.value,
@@ -824,15 +844,12 @@ class _DropdownField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: GoogleFonts.manrope(
-            fontSize: 10,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textSecondary,
-            letterSpacing: 0.08,
-          ),
-        ),
+        Text(label,
+            style: GoogleFonts.manrope(
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textSecondary,
+                letterSpacing: 0.08)),
         const SizedBox(height: 6),
         Container(
           decoration: BoxDecoration(
@@ -845,15 +862,10 @@ class _DropdownField extends StatelessWidget {
             child: DropdownButton<String>(
               value: value,
               isExpanded: true,
-              icon: const Icon(
-                Icons.keyboard_arrow_down,
-                size: 18,
-                color: AppColors.textSecondary,
-              ),
+              icon: const Icon(Icons.keyboard_arrow_down,
+                  size: 18, color: AppColors.textSecondary),
               style: GoogleFonts.manrope(
-                fontSize: 14,
-                color: AppColors.textPrimary,
-              ),
+                  fontSize: 14, color: AppColors.textPrimary),
               dropdownColor: AppColors.white,
               items: items
                   .map((i) => DropdownMenuItem(value: i, child: Text(i)))
@@ -881,22 +893,14 @@ class _BottomNav extends StatelessWidget {
         children: [
           _NavItem(icon: Icons.grid_view, label: 'DASHBOARD', active: false),
           _NavItem(
-            icon: Icons.chat_bubble_outline,
-            label: 'MESSAGES',
-            active: false,
-          ),
+              icon: Icons.chat_bubble_outline,
+              label: 'MESSAGES',
+              active: false),
           GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const HostProfileScreen()),
-              );
-            },
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const HostProfileScreen())),
             child: _NavItem(
-              icon: Icons.person_outline,
-              label: 'PROFILE',
-              active: false,
-            ),
+                icon: Icons.person_outline, label: 'PROFILE', active: false),
           ),
         ],
       ),
@@ -908,11 +912,9 @@ class _NavItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool active;
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.active,
-  });
+
+  const _NavItem(
+      {required this.icon, required this.label, required this.active});
 
   @override
   Widget build(BuildContext context) {
@@ -921,14 +923,9 @@ class _NavItem extends StatelessWidget {
       children: [
         Icon(icon, color: Colors.white, size: 22),
         const SizedBox(height: 4),
-        Text(
-          label,
-          style: GoogleFonts.manrope(
-            fontSize: 10,
-            color: Colors.white,
-            letterSpacing: 0.04,
-          ),
-        ),
+        Text(label,
+            style: GoogleFonts.manrope(
+                fontSize: 10, color: Colors.white, letterSpacing: 0.04)),
       ],
     );
   }
@@ -947,23 +944,9 @@ class _MapPlaceholder extends StatelessWidget {
           width: 32,
           height: 32,
           decoration: const BoxDecoration(
-            color: AppColors.dark,
-            shape: BoxShape.circle,
-          ),
+              color: AppColors.dark, shape: BoxShape.circle),
           child: const Center(
             child: Icon(Icons.location_on, size: 16, color: Colors.white),
-          ),
-        ),
-        Positioned(
-          top: 10,
-          right: 12,
-          child: Text(
-            'Cairo',
-            style: GoogleFonts.manrope(
-              fontSize: 11,
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w500,
-            ),
           ),
         ),
       ],
@@ -977,7 +960,6 @@ class _GridPainter extends CustomPainter {
     final paint = Paint()
       ..color = AppColors.border.withValues(alpha: 0.6)
       ..strokeWidth = 0.5;
-
     for (double x = 0; x < size.width; x += 46) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
     }

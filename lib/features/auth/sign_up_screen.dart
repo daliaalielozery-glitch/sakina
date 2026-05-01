@@ -137,10 +137,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       SizedBox(height: 20.h),
                       CustomTextFormField(
                         controller: emailController,
-                        hintText: LocaleKeys.signup_university_email_placeholder
-                            .tr(),
-                        labelText: LocaleKeys.signup_university_email_label
-                            .tr(),
+                        hintText:
+                            LocaleKeys.signup_university_email_placeholder.tr(),
+                        labelText:
+                            LocaleKeys.signup_university_email_label.tr(),
                         keyboardType: TextInputType.emailAddress,
                         hintStyle: TextStyle(
                           color: Colors.grey,
@@ -229,14 +229,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       builder: (context) => CustomAppButton(
                         text: LocaleKeys.signup_title.tr(),
                         onPressed: () {
-                          context.read<AuthBloc>().add(
-                            SignUpRequested(
-                              email: emailController.text,
-                              password: passwordController.text,
-                              fullName: nameController.text,
-                              university: universityController.text,
-                            ),
-                          );
+                         context.read<AuthBloc>().add(
+                          SignUpRequested(
+                            email: emailController.text,
+                            password: passwordController.text,
+                            fullName: nameController.text,
+                            university: universityController.text,
+                            role: widget.role,
+                          ),
+                        );
                         },
                       ),
                     ),
@@ -244,15 +245,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     SizedBox(height: 30.h),
 
                     SocialAuthButtons(
-  googleLabel: LocaleKeys.google_auth.tr(),
-  appleLabel: LocaleKeys.apple_auth.tr(),
-  onGoogleTap: () {
-    AuthRepository().signInWithGoogle(role: widget.role);
-  },
-  onAppleTap: () {
-    AuthRepository().signInWithMicrosoft(role: widget.role);
-  },
-),
+                      googleLabel: LocaleKeys.google_auth.tr(),
+                      appleLabel: LocaleKeys.apple_auth.tr(),
+                      onGoogleTap: () {
+                        AuthRepository().signInWithGoogle(role: widget.role);
+                      },
+                      onAppleTap: () {
+                        AuthRepository().signInWithMicrosoft(role: widget.role);
+                      },
+                    ),
 
                     SizedBox(height: 30.h),
 

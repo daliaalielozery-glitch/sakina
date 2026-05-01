@@ -28,19 +28,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _onSignUp(SignUpRequested event, Emitter<AuthState> emit) async {
-    emit(AuthLoading());
-    try {
-      await repository.signUp(
-        email: event.email,
-        password: event.password,
-        fullName: event.fullName,
-        university: event.university,
-      );
-      emit(AuthSuccess());
-    } catch (e) {
-      emit(AuthFailure(e.toString()));
-    }
+  emit(AuthLoading());
+  try {
+    await repository.signUp(
+      email: event.email,
+      password: event.password,
+      fullName: event.fullName,
+      university: event.university,
+      role: event.role,
+    );
+    emit(AuthSuccess());
+  } catch (e) {
+    emit(AuthFailure(e.toString()));
   }
+}
 
   Future<void> _onLogout(LogoutRequested event, Emitter<AuthState> emit) async {
     await repository.logout();

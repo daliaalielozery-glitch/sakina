@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'host_profile_screen.dart';
 
 class AppColors {
@@ -19,21 +21,23 @@ class AppColors {
 }
 
 class ListingDetailsScreen extends StatefulWidget {
+  final String listingId;
   final String title;
   final String location;
   final String price;
   final String beds;
   final String tag;
-  final List<String> photos;
+  final String imageUrl;
 
   const ListingDetailsScreen({
     super.key,
+    required this.listingId,
     required this.title,
     required this.location,
     required this.price,
     required this.beds,
     required this.tag,
-    this.photos = const [],
+    this.imageUrl = '',
   });
 
   @override
@@ -41,12 +45,14 @@ class ListingDetailsScreen extends StatefulWidget {
 }
 
 class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
+  final supabase = Supabase.instance.client;
+  bool _isLoading = false;
+
   late String _policy;
   late String _propertyType;
   late String _university;
-  late String _about;
-  late String _address;
   late bool _isAvailable;
+
   final List<XFile> _photos = [];
   final ImagePicker _picker = ImagePicker();
 
@@ -55,22 +61,6 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
   final _locationController = TextEditingController();
   final _bedsController = TextEditingController();
   final _aboutController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _titleController.text = widget.title;
-    _rentController.text = widget.price;
-    _locationController.text = widget.location;
-    _bedsController.text = widget.beds;
-    _policy = 'Female Only'; //placeholders
-    _propertyType = 'Apartment';
-    _university = 'American University in Cairo (AUC)';
-    _about = 'Modern studio apartment near AUC campus...';
-    _address = 'Heliopolis, Street 12';
-    _aboutController.text = _about;
-    _isAvailable = widget.tag != 'FULLY BOOKED';
-  }
 
   final _amenities = <String, bool>{
     'Wi-Fi': true,
@@ -90,16 +80,140 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
     'Parking': Icons.local_parking_outlined,
   };
 
+  @override
+  void initState() {
+    super.initState();
+    _titleController.text = widget.title;
+    _rentController.text = widget.price;
+    _locationController.text = widget.location;
+    _bedsController.text = widget.beds;
+    _aboutController.text = '';
+    _policy = 'Female Only';
+    _propertyType = 'Apartment';
+    _university = 'American University in Cairo (AUC)';
+    _isAvailable = widget.tag != 'FULLY BOOKED';
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _rentController.dispose();
+    _locationController.dispose();
+    _bedsController.dispose();
+    _aboutController.dispose();
+    super.dispose();
+  }
+
   Future<void> _pickImage(ImageSource source) async {
     try {
       final XFile? image = await _picker.pickImage(source: source);
-      if (image != null) {
-        setState(() {
-          _photos.add(image);
-        });
-      }
+      if (image != null) setState(() => _photos.add(image));
     } catch (e) {
       debugPrint('Error picking image: $e');
+    }
+  }
+
+  // ✅ Save Changes to Supabase
+  Future<void> _saveChanges() async {
+    setState(() => _isLoading = true);
+    try {
+      String? imageUrl;
+
+      // Upload new image if selected
+      if (_photos.isNotEmpty) {
+        final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+        if (kIsWeb) {
+          final bytes = await _photos.first.readAsBytes();
+          await supabase.storage
+              .from('listing-images')
+              .uploadBinary(fileName, bytes);
+        } else {
+          await supabase.storage
+              .from('listing-images')
+              .upload(fileName, File(_photos.first.path));
+        }
+        imageUrl =
+            supabase.storage.from('listing-images').getPublicUrl(fileName);
+      }
+
+      final updateData = {
+        'title': _titleController.text,
+        'description': _aboutController.text,
+        'rent_price': double.parse(_rentController.text.replaceAll(',', '')),
+        'property_type': _propertyType.toLowerCase(),
+        'status': _isAvailable ? 'available' : 'fully_booked',
+      };
+
+      if (imageUrl != null) {
+        updateData['image_url'] = imageUrl;
+      }
+
+      await supabase
+          .from('property_listings')
+          .update(updateData)
+          .eq('listing_id', widget.listingId);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Listing updated successfully! ✅')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  // ✅ Delete Listing from Supabase
+  Future<void> _deleteListing() async {
+    // Confirm dialog
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Listing'),
+        content: const Text('Are you sure you want to delete this listing?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isLoading = true);
+    try {
+      await supabase
+          .from('property_listings')
+          .delete()
+          .eq('listing_id', widget.listingId);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Listing deleted successfully!')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -115,14 +229,11 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'Select Image Source',
-              style: GoogleFonts.manrope(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
+            Text('Select Image Source',
+                style: GoogleFonts.manrope(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary)),
             const SizedBox(height: 20),
             Row(
               children: [
@@ -174,13 +285,9 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
           children: [
             Icon(icon, size: 32, color: AppColors.textPrimary),
             const SizedBox(height: 8),
-            Text(
-              label,
-              style: GoogleFonts.manrope(
-                fontSize: 14,
-                color: AppColors.textPrimary,
-              ),
-            ),
+            Text(label,
+                style: GoogleFonts.manrope(
+                    fontSize: 14, color: AppColors.textPrimary)),
           ],
         ),
       ),
@@ -235,7 +342,7 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
             onTap: _showImageSourceDialog,
             child: Container(
               height: 160,
-              width: double.infinity, //to tab anywhere
+              width: double.infinity,
               decoration: BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: BorderRadius.circular(12),
@@ -244,152 +351,34 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
               child: _photos.isNotEmpty
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.file(
-                        File(_photos.first.path),
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: 160,
-                      ),
+                      child: kIsWeb
+                          ? Image.network(_photos.first.path, fit: BoxFit.cover)
+                          : Image.file(File(_photos.first.path),
+                              fit: BoxFit.cover),
                     )
-                  : Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.add_a_photo_outlined,
-                          size: 28,
-                          color: AppColors.textSecondary,
+                  : widget.imageUrl.isNotEmpty
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.network(widget.imageUrl,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: 160),
+                        )
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.add_a_photo_outlined,
+                                size: 28, color: AppColors.textSecondary),
+                            const SizedBox(height: 8),
+                            Text('Tap to change primary photo',
+                                style: GoogleFonts.manrope(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.textPrimary)),
+                          ],
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Tap to change primary photo',
-                          style: _bodyMedium().copyWith(
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'High resolution landscape preferred',
-                          style: _caption(),
-                        ),
-                      ],
-                    ),
             ),
           ),
-          if (_photos.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 80,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: _photos.length + 1,
-                itemBuilder: (context, index) {
-                  if (index == _photos.length) {
-                    return GestureDetector(
-                      onTap: _showImageSourceDialog,
-                      child: Container(
-                        width: 80,
-                        margin: const EdgeInsets.only(right: 8),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: AppColors.border,
-                            width: 0.5,
-                          ),
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.add,
-                            size: 24,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-                  return Container(
-                    width: 80,
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: Image.file(
-                            File(_photos[index].path),
-                            fit: BoxFit.cover,
-                            width: 80,
-                            height: 80,
-                          ),
-                        ),
-                        Positioned(
-                          top: 4,
-                          right: 4,
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _photos.removeAt(index);
-                              });
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: Colors.redAccent,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.close,
-                                size: 12,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-          ] else ...[
-            const SizedBox(height: 10),
-            GestureDetector(
-              onTap: _showImageSourceDialog,
-              child: Container(
-                height: 80,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.border, width: 0.5),
-                ),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.add,
-                        size: 24,
-                        color: AppColors.textSecondary,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Add More Photos',
-                        style: GoogleFonts.manrope(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -403,54 +392,34 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
         children: [
           _SectionHeader(title: 'Property\nBasics', step: 'STEP 02 / 05'),
           _InputField(
-            label: 'PROPERTY TITLE',
-            hint: 'e.g., Sun-drenched Studio near AUC',
-            controller: _titleController,
-          ),
+              label: 'PROPERTY TITLE',
+              hint: 'e.g., Sun-drenched Studio near AUC',
+              controller: _titleController),
           const SizedBox(height: 14),
           _InputField(
-            label: 'MONTHLY RENT (EGP)',
-            hint: '8,500',
-            keyboardType: TextInputType.number,
-            controller: _rentController,
-          ),
+              label: 'MONTHLY RENT (EGP)',
+              hint: '8,500',
+              keyboardType: TextInputType.number,
+              controller: _rentController),
           const SizedBox(height: 14),
           _InputField(
-            label: 'LOCATION (AREA/NEIGHBORHOOD)',
-            hint: 'New Cairo, Fifth Settlement',
-            controller: _locationController,
+              label: 'LOCATION (AREA/NEIGHBORHOOD)',
+              hint: 'New Cairo, Fifth Settlement',
+              controller: _locationController),
+          const SizedBox(height: 14),
+          _DropdownField(
+            label: 'PROPERTY TYPE',
+            value: _propertyType,
+            items: const ['Apartment', 'Studio', 'Room', 'Villa'],
+            onChanged: (v) => setState(() => _propertyType = v!),
           ),
           const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _DropdownField(
-                  label: 'PROPERTY TYPE',
-                  value: _propertyType,
-                  items: const ['Apartment', 'Studio', 'Room', 'Villa'],
-                  onChanged: (v) => setState(() => _propertyType = v!),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: _InputField(
-                  label: 'BEDS STATUS',
-                  hint: 'e.g., 2/3 occupied',
-                  controller: _bedsController,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            'AVAILABILITY',
-            style: GoogleFonts.manrope(
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary,
-              letterSpacing: 0.08,
-            ),
-          ),
+          Text('AVAILABILITY',
+              style: GoogleFonts.manrope(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textSecondary,
+                  letterSpacing: 0.08)),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
@@ -460,28 +429,21 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
               return GestureDetector(
                 onTap: () => setState(() => _isAvailable = p == 'Available'),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   decoration: BoxDecoration(
                     color: active ? AppColors.goldLight : AppColors.surface,
                     borderRadius: BorderRadius.circular(100),
                     border: Border.all(
-                      color: active ? AppColors.gold : AppColors.border,
-                      width: 0.5,
-                    ),
+                        color: active ? AppColors.gold : AppColors.border,
+                        width: 0.5),
                   ),
-                  child: Text(
-                    p,
-                    style: GoogleFonts.manrope(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w400,
-                      color: active
-                          ? AppColors.goldText
-                          : AppColors.textPrimary,
-                    ),
-                  ),
+                  child: Text(p,
+                      style: GoogleFonts.manrope(
+                          fontSize: 13,
+                          color: active
+                              ? AppColors.goldText
+                              : AppColors.textPrimary)),
                 ),
               );
             }).toList(),
@@ -498,15 +460,12 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _SectionHeader(title: 'Student\nFocus', step: 'STEP 03 / 05'),
-          Text(
-            'POLICY',
-            style: GoogleFonts.manrope(
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary,
-              letterSpacing: 0.08,
-            ),
-          ),
+          Text('POLICY',
+              style: GoogleFonts.manrope(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textSecondary,
+                  letterSpacing: 0.08)),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
@@ -516,28 +475,21 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
               return GestureDetector(
                 onTap: () => setState(() => _policy = p),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   decoration: BoxDecoration(
                     color: active ? AppColors.goldLight : AppColors.surface,
                     borderRadius: BorderRadius.circular(100),
                     border: Border.all(
-                      color: active ? AppColors.gold : AppColors.border,
-                      width: 0.5,
-                    ),
+                        color: active ? AppColors.gold : AppColors.border,
+                        width: 0.5),
                   ),
-                  child: Text(
-                    p,
-                    style: GoogleFonts.manrope(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w400,
-                      color: active
-                          ? AppColors.goldText
-                          : AppColors.textPrimary,
-                    ),
-                  ),
+                  child: Text(p,
+                      style: GoogleFonts.manrope(
+                          fontSize: 13,
+                          color: active
+                              ? AppColors.goldText
+                              : AppColors.textPrimary)),
                 ),
               );
             }).toList(),
@@ -574,39 +526,30 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
               return GestureDetector(
                 onTap: () => setState(() => _amenities[e.key] = !active),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
                     color: active ? AppColors.goldLight : AppColors.surface,
                     borderRadius: BorderRadius.circular(100),
                     border: Border.all(
-                      color: active ? AppColors.gold : AppColors.border,
-                      width: 0.5,
-                    ),
+                        color: active ? AppColors.gold : AppColors.border,
+                        width: 0.5),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        _amenityIcons[e.key] ?? Icons.check,
-                        size: 14,
-                        color: active
-                            ? AppColors.goldText
-                            : AppColors.textSecondary,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        e.key,
-                        style: GoogleFonts.manrope(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w400,
+                      Icon(_amenityIcons[e.key] ?? Icons.check,
+                          size: 14,
                           color: active
                               ? AppColors.goldText
-                              : AppColors.textPrimary,
-                        ),
-                      ),
+                              : AppColors.textSecondary),
+                      const SizedBox(width: 6),
+                      Text(e.key,
+                          style: GoogleFonts.manrope(
+                              fontSize: 13,
+                              color: active
+                                  ? AppColors.goldText
+                                  : AppColors.textPrimary)),
                     ],
                   ),
                 ),
@@ -626,24 +569,17 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Location',
-                style: GoogleFonts.manrope(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w300,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              Text(
-                _address,
-                style: GoogleFonts.manrope(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
+              Text('Location',
+                  style: GoogleFonts.manrope(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w300,
+                      color: AppColors.textPrimary)),
+              Text(widget.location,
+                  style: GoogleFonts.manrope(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w400)),
             ],
           ),
           const SizedBox(height: 16),
@@ -679,15 +615,11 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
               controller: _aboutController,
               maxLines: 5,
               style: GoogleFonts.manrope(
-                fontSize: 14,
-                color: AppColors.textPrimary,
-              ),
+                  fontSize: 14, color: AppColors.textPrimary),
               decoration: InputDecoration(
                 hintText: 'Describe the property...',
                 hintStyle: GoogleFonts.manrope(
-                  fontSize: 13,
-                  color: AppColors.textHint,
-                ),
+                    fontSize: 13, color: AppColors.textHint),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.all(14),
               ),
@@ -706,53 +638,46 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                // TODO: Backend - Save updated listing
-              },
+              onPressed: _isLoading ? null : _saveChanges,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.gold,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                    borderRadius: BorderRadius.circular(10)),
                 elevation: 0,
               ),
-              child: Text(
-                'Save Changes',
-                style: GoogleFonts.manrope(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white,
-                  letterSpacing: 0.01,
-                ),
-              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2),
+                    )
+                  : Text('Save Changes',
+                      style: GoogleFonts.manrope(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white)),
             ),
           ),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                // TODO: Backend - Delete listing
-              },
+              onPressed: _isLoading ? null : _deleteListing,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  side: const BorderSide(color: Colors.redAccent, width: 1),
-                ),
+                    borderRadius: BorderRadius.circular(10),
+                    side: const BorderSide(color: Colors.redAccent, width: 1)),
                 elevation: 0,
               ),
-              child: Text(
-                'Delete Listing',
-                style: GoogleFonts.manrope(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.redAccent,
-                  letterSpacing: 0.01,
-                ),
-              ),
+              child: Text('Delete Listing',
+                  style: GoogleFonts.manrope(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.redAccent)),
             ),
           ),
         ],
@@ -761,16 +686,10 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
   }
 
   Widget _divider() => Container(
-    height: 0.5,
-    color: AppColors.border,
-    margin: const EdgeInsets.only(top: 28),
-  );
-
-  TextStyle _bodyMedium() =>
-      GoogleFonts.manrope(fontSize: 14, color: AppColors.textPrimary);
-
-  TextStyle _caption() =>
-      GoogleFonts.manrope(fontSize: 11, color: AppColors.textSecondary);
+        height: 0.5,
+        color: AppColors.border,
+        margin: const EdgeInsets.only(top: 28),
+      );
 }
 
 class _TopBar extends StatelessWidget {
@@ -788,20 +707,14 @@ class _TopBar extends StatelessWidget {
             onTap: () => Navigator.pop(context),
             child: Row(
               children: [
-                const Icon(
-                  Icons.arrow_back,
-                  size: 18,
-                  color: AppColors.textPrimary,
-                ),
+                const Icon(Icons.arrow_back,
+                    size: 18, color: AppColors.textPrimary),
                 const SizedBox(width: 6),
-                Text(
-                  'Listing Details',
-                  style: GoogleFonts.manrope(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
+                Text('Listing Details',
+                    style: GoogleFonts.manrope(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textPrimary)),
               ],
             ),
           ),
@@ -812,11 +725,8 @@ class _TopBar extends StatelessWidget {
               shape: BoxShape.circle,
               border: Border.all(color: AppColors.border, width: 0.5),
             ),
-            child: const Icon(
-              Icons.more_horiz,
-              size: 16,
-              color: AppColors.textSecondary,
-            ),
+            child: const Icon(Icons.more_horiz,
+                size: 16, color: AppColors.textSecondary),
           ),
         ],
       ),
@@ -827,7 +737,6 @@ class _TopBar extends StatelessWidget {
 class _SectionHeader extends StatelessWidget {
   final String title;
   final String step;
-
   const _SectionHeader({required this.title, required this.step});
 
   @override
@@ -838,24 +747,18 @@ class _SectionHeader extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: GoogleFonts.manrope(
-              fontSize: 26,
-              fontWeight: FontWeight.w300,
-              color: AppColors.textPrimary,
-              height: 1.1,
-            ),
-          ),
-          Text(
-            step,
-            style: GoogleFonts.manrope(
-              fontSize: 11,
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w400,
-              letterSpacing: 0.04,
-            ),
-          ),
+          Text(title,
+              style: GoogleFonts.manrope(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w300,
+                  color: AppColors.textPrimary,
+                  height: 1.1)),
+          Text(step,
+              style: GoogleFonts.manrope(
+                  fontSize: 11,
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: 0.04)),
         ],
       ),
     );
@@ -880,35 +783,26 @@ class _InputField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: GoogleFonts.manrope(
-            fontSize: 10,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textSecondary,
-            letterSpacing: 0.08,
-          ),
-        ),
+        Text(label,
+            style: GoogleFonts.manrope(
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textSecondary,
+                letterSpacing: 0.08)),
         const SizedBox(height: 6),
         TextField(
           controller: controller,
           keyboardType: keyboardType,
-          style: GoogleFonts.manrope(
-            fontSize: 14,
-            color: AppColors.textPrimary,
-          ),
+          style:
+              GoogleFonts.manrope(fontSize: 14, color: AppColors.textPrimary),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: GoogleFonts.manrope(
-              fontSize: 14,
-              color: AppColors.textHint,
-            ),
+            hintStyle:
+                GoogleFonts.manrope(fontSize: 14, color: AppColors.textHint),
             filled: true,
             fillColor: AppColors.surface,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 12,
-            ),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: const BorderSide(color: AppColors.border, width: 0.5),
@@ -946,15 +840,12 @@ class _DropdownField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: GoogleFonts.manrope(
-            fontSize: 10,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textSecondary,
-            letterSpacing: 0.08,
-          ),
-        ),
+        Text(label,
+            style: GoogleFonts.manrope(
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textSecondary,
+                letterSpacing: 0.08)),
         const SizedBox(height: 6),
         Container(
           decoration: BoxDecoration(
@@ -967,15 +858,10 @@ class _DropdownField extends StatelessWidget {
             child: DropdownButton<String>(
               value: value,
               isExpanded: true,
-              icon: const Icon(
-                Icons.keyboard_arrow_down,
-                size: 18,
-                color: AppColors.textSecondary,
-              ),
+              icon: const Icon(Icons.keyboard_arrow_down,
+                  size: 18, color: AppColors.textSecondary),
               style: GoogleFonts.manrope(
-                fontSize: 14,
-                color: AppColors.textPrimary,
-              ),
+                  fontSize: 14, color: AppColors.textPrimary),
               dropdownColor: AppColors.white,
               items: items
                   .map((i) => DropdownMenuItem(value: i, child: Text(i)))
@@ -1002,32 +888,19 @@ class _BottomNav extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           GestureDetector(
-            onTap: () {
-              Navigator.popUntil(context, (route) => route.isFirst);
-            },
-            child: _NavItem(
-              icon: Icons.grid_view,
-              label: 'DASHBOARD',
-              active: false,
-            ),
+            onTap: () => Navigator.popUntil(context, (route) => route.isFirst),
+            child: const _NavItem(
+                icon: Icons.grid_view, label: 'DASHBOARD', active: false),
           ),
-          _NavItem(
-            icon: Icons.chat_bubble_outline,
-            label: 'MESSAGES',
-            active: false,
-          ),
+          const _NavItem(
+              icon: Icons.chat_bubble_outline,
+              label: 'MESSAGES',
+              active: false),
           GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const HostProfileScreen()),
-              );
-            },
-            child: _NavItem(
-              icon: Icons.person_outline,
-              label: 'PROFILE',
-              active: false,
-            ),
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const HostProfileScreen())),
+            child: const _NavItem(
+                icon: Icons.person_outline, label: 'PROFILE', active: false),
           ),
         ],
       ),
@@ -1040,11 +913,8 @@ class _NavItem extends StatelessWidget {
   final String label;
   final bool active;
 
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.active,
-  });
+  const _NavItem(
+      {required this.icon, required this.label, required this.active});
 
   @override
   Widget build(BuildContext context) {
@@ -1053,14 +923,9 @@ class _NavItem extends StatelessWidget {
       children: [
         Icon(icon, color: Colors.white, size: 22),
         const SizedBox(height: 4),
-        Text(
-          label,
-          style: GoogleFonts.manrope(
-            fontSize: 10,
-            color: Colors.white,
-            letterSpacing: 0.04,
-          ),
-        ),
+        Text(label,
+            style: GoogleFonts.manrope(
+                fontSize: 10, color: Colors.white, letterSpacing: 0.04)),
       ],
     );
   }
@@ -1079,24 +944,9 @@ class _MapPlaceholder extends StatelessWidget {
           width: 32,
           height: 32,
           decoration: const BoxDecoration(
-            color: AppColors.dark,
-            shape: BoxShape.circle,
-          ),
+              color: AppColors.dark, shape: BoxShape.circle),
           child: const Center(
-            child: Icon(Icons.location_on, size: 16, color: Colors.white),
-          ),
-        ),
-        Positioned(
-          top: 10,
-          right: 12,
-          child: Text(
-            'Cairo',
-            style: GoogleFonts.manrope(
-              fontSize: 11,
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+              child: Icon(Icons.location_on, size: 16, color: Colors.white)),
         ),
       ],
     );
@@ -1109,7 +959,6 @@ class _GridPainter extends CustomPainter {
     final paint = Paint()
       ..color = AppColors.border.withValues(alpha: 0.6)
       ..strokeWidth = 0.5;
-
     for (double x = 0; x < size.width; x += 46) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
     }

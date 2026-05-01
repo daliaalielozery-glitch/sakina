@@ -33,19 +33,22 @@ class HostProfileScreen extends StatelessWidget {
                     const SizedBox(height: 20),
                     const Center(child: _ProfilePhoto()),
                     const SizedBox(height: 18),
-                   Text(
-  Supabase.instance.client.auth.currentUser?.userMetadata?['full_name'] ??
-  Supabase.instance.client.auth.currentUser?.userMetadata?['name'] ??
-  Supabase.instance.client.auth.currentUser?.email?.split('@')[0] ??
-  'User',
-  style: TextStyle(
-    fontSize: 30,
-    height: 1.0,
-    fontWeight: FontWeight.w800,
-    color: brown,
-    letterSpacing: -1.2,
-  ),
-),
+                    Text(
+                      Supabase.instance.client.auth.currentUser
+                              ?.userMetadata?['full_name'] ??
+                          Supabase.instance.client.auth.currentUser
+                              ?.userMetadata?['name'] ??
+                          Supabase.instance.client.auth.currentUser?.email
+                              ?.split('@')[0] ??
+                          'User',
+                      style: TextStyle(
+                        fontSize: 30,
+                        height: 1.0,
+                        fontWeight: FontWeight.w800,
+                        color: brown,
+                        letterSpacing: -1.2,
+                      ),
+                    ),
                     const SizedBox(height: 10),
                     Row(
                       children: const [
@@ -199,6 +202,7 @@ class HostProfileScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     const _PropertyCard(
+                      listingId: '1',
                       title: 'Maadi Garden Suite',
                       location: 'Street 9, Maadi, Cairo',
                       imageUrl:
@@ -208,6 +212,7 @@ class HostProfileScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     const _PropertyCard(
+                      listingId: '2',
                       title: 'Zamalek Heritage Loft',
                       location: 'Ismail Mohamed St, Zamalek',
                       imageUrl:
@@ -454,6 +459,7 @@ class _PropertyCard extends StatelessWidget {
   final String imageUrl;
   final String price;
   final String tag;
+  final String listingId;
 
   const _PropertyCard({
     required this.title,
@@ -461,6 +467,7 @@ class _PropertyCard extends StatelessWidget {
     required this.imageUrl,
     required this.price,
     required this.tag,
+    required this.listingId,
   });
 
   @override
@@ -471,11 +478,13 @@ class _PropertyCard extends StatelessWidget {
           context,
           MaterialPageRoute(
             builder: (_) => ListingDetailsScreen(
+              listingId: listingId,
               title: title,
               location: location,
               price: price,
               beds: '',
               tag: tag,
+              imageUrl: imageUrl,
             ),
           ),
         );
