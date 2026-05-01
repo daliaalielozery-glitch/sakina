@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sakina/core/theme/app_colors.dart';
 import 'package:sakina/core/widgets/custom_app_bar.dart';
+import 'package:sakina/features/profiles/ui/widgets/account_setting.dart';
 import 'package:sakina/features/profiles/ui/widgets/profile_header.dart';
 import 'package:sakina/features/profiles/ui/widgets/preferences_section.dart';
 import 'package:sakina/features/profiles/ui/widgets/privacy_section.dart';
@@ -29,7 +30,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         showBackButton: true,
         actions: [
           IconButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AccountSettingsScreen(),
+                ),
+              );
+            },
             icon: const Icon(Icons.settings),
           ),
         ],
