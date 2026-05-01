@@ -41,7 +41,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
   String _propertyType = 'Apartment';
   String _university = 'American University in Cairo (AUC)';
   final List<XFile> _photos = [];
-  List<Uint8List> _webImages = [];
+  final List<Uint8List> _webImages = [];
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
 
