@@ -1,9 +1,9 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:sakina/features/local_services/widgets/partner_card.dart';
-import 'package:sakina/features/local_services/widgets/specialty_card.dart';
-import 'package:sakina/features/local_services/widgets/service_model.dart';
+import 'package:sakina/features/local_services/ui/widgets/partner_card.dart';
+import 'package:sakina/features/local_services/ui/widgets/specialty_card.dart';
+import 'package:sakina/features/local_services/ui/widgets/service_model.dart';
 
 class MaintenanceContent extends StatelessWidget {
   const MaintenanceContent({super.key});

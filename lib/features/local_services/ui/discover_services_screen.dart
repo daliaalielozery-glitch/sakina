@@ -1,15 +1,16 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sakina/core/theme/app_colors.dart';
 import 'package:sakina/core/widgets/custom_app_bar.dart';
 import 'package:sakina/core/widgets/bottom_bar.dart';
-import 'package:sakina/features/local_services/widgets/category_selector.dart';
-import 'package:sakina/features/local_services/widgets/food_content.dart';
-import 'package:sakina/features/local_services/widgets/service_model.dart';
-import '../widgets/discover_header.dart';
-import 'package:sakina/features/local_services/widgets/all_services_content.dart';
-import 'package:sakina/features/local_services/widgets/laundry_content.dart';
-import 'package:sakina/features/local_services/widgets/maintenance_content.dart';
+import 'package:sakina/features/local_services/ui/widgets/category_selector.dart';
+import 'package:sakina/features/local_services/ui/widgets/food_content.dart';
+import 'package:sakina/features/local_services/ui/widgets/service_model.dart';
+import 'widgets/discover_header.dart';
+import 'package:sakina/features/local_services/ui/widgets/all_services_content.dart';
+import 'package:sakina/features/local_services/ui/widgets/laundry_content.dart';
+import 'package:sakina/features/local_services/ui/widgets/maintenance_content.dart';
 
 class DiscoverServicesScreen extends StatefulWidget {
   const DiscoverServicesScreen({super.key});
@@ -63,22 +64,22 @@ class _DiscoverServicesScreenState extends State<DiscoverServicesScreen> {
   }
 
   Widget _buildActiveSection() {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 300),
-      child: _getContentWidget(),
-    );
-  }
+  return AnimatedSwitcher(
+    duration: const Duration(milliseconds: 300),
+    child: _getContentWidget(), 
+  );
+}
 
-  Widget _getContentWidget() {
-    switch (_selectedCategory) {
-      case ServiceCategory.food:
-        return const FoodContent(key: ValueKey('food'));
-      case ServiceCategory.laundry:
-        return const LaundryContent(key: ValueKey('laundry'));
-      case ServiceCategory.maintenance:
-        return const MaintenanceContent(key: ValueKey('maintenance'));
-      default:
-        return const AllServicesContent(key: ValueKey('all'));
-    }
+Widget _getContentWidget() {
+  switch (_selectedCategory) {
+    case ServiceCategory.food:
+      return const FoodContent(key: ValueKey('food'));
+    case ServiceCategory.laundry:
+      return const LaundryContent(key: ValueKey('laundry'));
+    case ServiceCategory.maintenance:
+      return const MaintenanceContent(key: ValueKey('maintenance'));
+    default:
+      return const AllServicesContent(key: ValueKey('all'));
   }
+}
 }

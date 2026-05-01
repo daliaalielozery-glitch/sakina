@@ -1,9 +1,9 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:sakina/features/local_services/screens/quick_wash_laundry_details_screen.dart';
-import 'package:sakina/features/local_services/widgets/service_card.dart';
-import 'package:sakina/features/local_services/widgets/special_offer_banner.dart';
+import 'package:sakina/features/local_services/ui/quick_wash_laundry_details_screen.dart';
+import 'package:sakina/features/local_services/ui/widgets/service_card.dart';
+import 'package:sakina/features/local_services/ui/widgets/special_offer_banner.dart';
 
 class AllServicesContent extends StatelessWidget {
   const AllServicesContent({super.key});

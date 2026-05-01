@@ -1,8 +1,8 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:sakina/features/local_services/screens/quick_wash_laundry_details_screen.dart';
-import 'package:sakina/features/local_services/widgets/service_card.dart';
-import 'package:sakina/features/local_services/widgets/service_model.dart';
+import 'package:sakina/features/local_services/ui/quick_wash_laundry_details_screen.dart';
+import 'package:sakina/features/local_services/ui/widgets/service_card.dart';
+import 'package:sakina/features/local_services/ui/widgets/service_model.dart';
 
 class LaundryContent extends StatelessWidget {
   const LaundryContent({super.key});

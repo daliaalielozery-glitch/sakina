@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sakina/core/theme/app_colors.dart';
-import 'package:sakina/features/local_services/screens/discover_services_screen.dart';
+import 'package:sakina/features/local_services/ui/discover_services_screen.dart';
 
 // ---------------------------------------------------------------------------
 // Data model

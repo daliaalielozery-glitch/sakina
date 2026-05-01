@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sakina/core/widgets/custom_app_bar.dart';
 import 'package:sakina/core/widgets/bottom_bar.dart';
-import '../widgets/info_card.dart';
-import '../widgets/details_service_item.dart';
-import '../widgets/details_hero_header.dart';
+import 'widgets/info_card.dart';
+import 'widgets/details_service_item.dart';
+import 'widgets/details_hero_header.dart';
 
 class QuickWashLaundryDetailsScreen extends StatelessWidget {
   const QuickWashLaundryDetailsScreen({super.key});
