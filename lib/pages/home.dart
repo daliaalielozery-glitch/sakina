@@ -7,7 +7,7 @@ import 'package:sakina/features/ai_match/screens/loading_screen.dart';
 import 'package:sakina/features/home/bloc/home_bloc.dart';
 import 'package:sakina/pages/explore.dart';
 import 'package:sakina/pages/favourite.dart';
-import 'package:sakina/pages/messages.dart';
+import 'package:sakina/pages/messages/conversation_page/messages.dart';
 import 'package:sakina/pages/widgets/services_near_you.dart';
 import 'package:sakina/pages/widgets/top_match.dart';
 import 'package:sakina/features/map/screens/map_screen.dart';
@@ -86,7 +86,7 @@ class _HomePageState extends State<HomePage> {
       case 2:
         return const FavouritePage();
       case 3:
-        return const MessagesPage();
+        return const ConversationsScreen();
       default:
         return const _HomeContent();
     }

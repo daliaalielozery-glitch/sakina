@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:sakina/pages/explore.dart';
 import 'package:sakina/pages/favourite.dart';
 import 'package:sakina/pages/home.dart';
-import 'package:sakina/pages/messages.dart';
+import 'package:sakina/pages/messages/conversation_page/messages.dart';
 import 'package:sakina/features/home/bloc/home_bloc.dart';
 
 class ButtomNavBarScreen extends StatefulWidget {
@@ -31,7 +31,7 @@ class _ButtomNavBarScreenState extends State<ButtomNavBarScreen> {
     ),
     const ExplorePage(),
     const FavouritePage(),
-    const MessagesPage(),
+    const ConversationsScreen(),
   ];
 
   @override
