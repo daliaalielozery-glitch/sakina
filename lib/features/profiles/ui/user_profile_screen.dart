@@ -39,6 +39,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   @override
   void initState() {
     super.initState();
+    // Set name immediately from auth so it shows right away
+    final authUser = _supabase.auth.currentUser;
+    _fullName = authUser?.userMetadata?['full_name'] ??
+        authUser?.userMetadata?['name'] ??
+        authUser?.email?.split('@')[0] ??
+        'Unknown';
     _fetchProfile();
   }
 
@@ -71,11 +77,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
       if (mounted) {
         setState(() {
-         _fullName = _supabase.auth.currentUser?.userMetadata?['full_name'] ??
-            _supabase.auth.currentUser?.userMetadata?['name'] ??
-            user?['full_name'] ??
-            _supabase.auth.currentUser?.email?.split('@')[0] ??
-            'Unknown';
+          // Keep auth name if DB has nothing better
+          final authUser = _supabase.auth.currentUser;
+          final dbName = user?['full_name']?.toString() ?? '';
+          if (dbName.isNotEmpty) _fullName = dbName;
+          // else keep what was set in initState
+
           _avatarUrl = user?['avatar_url'] ?? '';
           _bio = user?['bio'] ?? '';
           _university = tenant?['university'] ?? '';
@@ -89,7 +96,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          // Name already set in initState, no need to reset
+        });
+      }
     }
   }
 
@@ -157,7 +169,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
     if (action == null) return;
 
-    // Remove photo
     if (action == 'remove') {
       try {
         final userId = _supabase.auth.currentUser?.id;

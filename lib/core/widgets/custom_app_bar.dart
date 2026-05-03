@@ -96,13 +96,19 @@ class _MyappbarState extends State<Myappbar> {
                     },
                     child: Row(
                       children: [
-                        CircleAvatar(
-                          radius: 24.r,
-                          backgroundColor: AppColors.primaryBeig,
-                          backgroundImage: const NetworkImage(
-                            'Picture1.jpg',
-                          ),
+                        Container(
+                        width: 48.r,
+                        height: 48.r,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color(0xFFDDD5C8),
                         ),
+                        child: const Icon(
+                          Icons.person,
+                          size: 28,
+                          color: Color(0xFF9A9088),
+                        ),
+                      ),
                         SizedBox(width: 10.w),
                         Text(
                           fullName,

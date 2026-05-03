@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:sakina/features/role/ui/role_screen.dart';
+import 'package:sakina/core/theme/app_colors.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final String fullName;
@@ -22,6 +24,7 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final supabase = Supabase.instance.client;
+
   static const Color bg = Color(0xFFF5F3EF);
   static const Color card = Color(0xFFEEE9DF);
   static const Color brown = Color(0xFF1B1209);
@@ -30,7 +33,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   late TextEditingController _nameController;
   late TextEditingController _bioController;
+
   final _formKey = GlobalKey<FormState>();
+
   dynamic _selectedImage;
   bool _isLoading = false;
 
@@ -50,7 +55,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+    );
+
     if (pickedFile != null) {
       if (kIsWeb) {
         final bytes = await pickedFile.readAsBytes();
@@ -63,15 +71,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
+
     setState(() => _isLoading = true);
+
     try {
       final userId = supabase.auth.currentUser?.id;
+
       if (userId == null) return;
 
       String? avatarUrl;
 
       if (_selectedImage != null) {
-        final fileName = '${DateTime.now().millisecondsSinceEpoch}_avatar.jpg';
+        final fileName =
+            '${DateTime.now().millisecondsSinceEpoch}_avatar.jpg';
+
         if (kIsWeb) {
           await supabase.storage
               .from('avatars')
@@ -81,31 +94,48 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               .from('avatars')
               .upload(fileName, _selectedImage);
         }
-        avatarUrl = supabase.storage.from('avatars').getPublicUrl(fileName);
+
+        avatarUrl =
+            supabase.storage.from('avatars').getPublicUrl(fileName);
       }
 
       final updateData = <String, dynamic>{
         'full_name': _nameController.text,
         'bio': _bioController.text,
       };
-      if (avatarUrl != null) updateData['avatar_url'] = avatarUrl;
 
-      await supabase.from('users').update(updateData).eq('user_id', userId);
+      if (avatarUrl != null) {
+        updateData['avatar_url'] = avatarUrl;
+      }
+
+      await supabase
+          .from('users')
+          .update(updateData)
+          .eq('user_id', userId);
 
       await supabase.auth.updateUser(
-        UserAttributes(data: {'full_name': _nameController.text}),
+        UserAttributes(
+          data: {
+            'full_name': _nameController.text,
+          },
+        ),
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated successfully! ✅')),
+          const SnackBar(
+            content: Text('Profile updated successfully! ✅'),
+          ),
         );
+
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(
+            content: Text('Error: $e'),
+          ),
         );
       }
     } finally {
@@ -113,10 +143,65 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  Future<void> _logout() async {
-    await supabase.auth.signOut();
-    if (mounted) {
-      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+  Future<void> _logout(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.primaryColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text(
+          'Log Out',
+          style: TextStyle(
+            fontFamily: 'Manrope',
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: const Text(
+          'Are you sure you want to log out?',
+          style: TextStyle(
+            fontFamily: 'Manrope',
+            color: Color(0xFF4C463C),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(
+                color: Color(0xFF9A8762),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text('Log Out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    await Supabase.instance.client.auth.signOut();
+
+    if (context.mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const RoleScreen(),
+        ),
+        (route) => false,
+      );
     }
   }
 
@@ -128,12 +213,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         backgroundColor: bg,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: brown),
+          icon: const Icon(
+            Icons.arrow_back,
+            color: brown,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Edit Profile',
-            style: TextStyle(
-                color: brown, fontSize: 18, fontWeight: FontWeight.w700)),
+        title: const Text(
+          'Edit Profile',
+          style: TextStyle(
+            color: brown,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         centerTitle: false,
       ),
       body: SafeArea(
@@ -155,25 +248,39 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         decoration: BoxDecoration(
                           color: card,
                           shape: BoxShape.circle,
-                          border: Border.all(color: border, width: 3),
+                          border: Border.all(
+                            color: border,
+                            width: 3,
+                          ),
                         ),
                         child: ClipOval(
                           child: _selectedImage != null
                               ? (kIsWeb
-                                  ? Image.memory(_selectedImage,
-                                      fit: BoxFit.cover)
-                                  : Image.file(_selectedImage,
-                                      fit: BoxFit.cover))
+                                  ? Image.memory(
+                                      _selectedImage,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Image.file(
+                                      _selectedImage,
+                                      fit: BoxFit.cover,
+                                    ))
                               : widget.avatarUrl != null &&
                                       widget.avatarUrl!.isNotEmpty
-                                  ? Image.network(widget.avatarUrl!,
+                                  ? Image.network(
+                                      widget.avatarUrl!,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => const Icon(
-                                          Icons.person,
-                                          size: 50,
-                                          color: muted))
-                                  : const Icon(Icons.person,
-                                      size: 50, color: muted),
+                                      errorBuilder: (_, __, ___) =>
+                                          const Icon(
+                                        Icons.person,
+                                        size: 50,
+                                        color: muted,
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons.person,
+                                      size: 50,
+                                      color: muted,
+                                    ),
                         ),
                       ),
                       Positioned(
@@ -182,9 +289,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(6),
                           decoration: const BoxDecoration(
-                              color: brown, shape: BoxShape.circle),
-                          child: const Icon(Icons.edit,
-                              size: 16, color: Colors.white),
+                            color: brown,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.edit,
+                            size: 16,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ],
@@ -218,50 +330,66 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                 const SizedBox(height: 32),
 
-                // Save
+                // Save button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _saveProfile,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: brown,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 16,
+                      ),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                     child: _isLoading
                         ? const SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
-                                color: Colors.white, strokeWidth: 2),
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
                           )
-                        : const Text('Save Changes',
+                        : const Text(
+                            'Save Changes',
                             style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600)),
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                   ),
                 ),
 
                 const SizedBox(height: 16),
 
-                // Logout
+                // Logout button
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
-                    onPressed: _logout,
+                    onPressed: () => _logout(context),
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      side: const BorderSide(color: muted),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 16,
+                      ),
+                      side: const BorderSide(
+                        color: muted,
+                      ),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
-                    child: const Text('Log Out',
-                        style: TextStyle(
-                            color: muted,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600)),
+                    child: const Text(
+                      'Log Out',
+                      style: TextStyle(
+                        color: muted,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -282,29 +410,47 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 14, fontWeight: FontWeight.w600, color: brown)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: brown,
+          ),
+        ),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           maxLines: maxLines,
           validator: validator,
-          style: const TextStyle(color: brown, fontSize: 15),
+          style: const TextStyle(
+            color: brown,
+            fontSize: 15,
+          ),
           decoration: InputDecoration(
             hintText: hint,
             filled: true,
             fillColor: card,
             contentPadding: const EdgeInsets.all(16),
             border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: border)),
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(
+                color: border,
+              ),
+            ),
             enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: border)),
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(
+                color: border,
+              ),
+            ),
             focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: brown, width: 1.5)),
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(
+                color: brown,
+                width: 1.5,
+              ),
+            ),
           ),
         ),
       ],
