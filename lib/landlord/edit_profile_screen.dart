@@ -1,56 +1,123 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'host_profile_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class EditProfileScreen extends StatefulWidget {
-  const EditProfileScreen({super.key});
+  final String fullName;
+  final String bio;
+  final String? avatarUrl;
+
+  const EditProfileScreen({
+    super.key,
+    required this.fullName,
+    required this.bio,
+    this.avatarUrl,
+  });
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  static const Color bg = Color(0xFFF5F3EF); //Fetch user profile from Firestore
+  final supabase = Supabase.instance.client;
+  static const Color bg = Color(0xFFF5F3EF);
   static const Color card = Color(0xFFEEE9DF);
   static const Color brown = Color(0xFF1B1209);
   static const Color muted = Color(0xFF7A746C);
   static const Color border = Color(0xFFE8E1D7);
 
-  final _nameController = TextEditingController(text: 'Khaled Ibrahim');
-  final _locationController = TextEditingController(text: 'Cairo, Egypt');
-  final _aboutController = TextEditingController(
-    text:
-        'I specialize in curating high-end living spaces specifically for the modern student in Cairo. My background in architecture allows me to ensure every property balances heritage charm with modern functionality.',
-  );
+  late TextEditingController _nameController;
+  late TextEditingController _bioController;
   final _formKey = GlobalKey<FormState>();
-  File? _selectedImage;
+  dynamic _selectedImage;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.fullName);
+    _bioController = TextEditingController(text: widget.bio);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _bioController.dispose();
+    super.dispose();
+  }
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
-      setState(() {
-        _selectedImage = File(pickedFile.path);
-      });
+      if (kIsWeb) {
+        final bytes = await pickedFile.readAsBytes();
+        setState(() => _selectedImage = bytes);
+      } else {
+        setState(() => _selectedImage = File(pickedFile.path));
+      }
     }
   }
 
-  void _saveProfile() {
-    if (_formKey.currentState!.validate()) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HostProfileScreen()),
+  Future<void> _saveProfile() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isLoading = true);
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return;
+
+      String? avatarUrl;
+
+      if (_selectedImage != null) {
+        final fileName = '${DateTime.now().millisecondsSinceEpoch}_avatar.jpg';
+        if (kIsWeb) {
+          await supabase.storage
+              .from('avatars')
+              .uploadBinary(fileName, _selectedImage);
+        } else {
+          await supabase.storage
+              .from('avatars')
+              .upload(fileName, _selectedImage);
+        }
+        avatarUrl = supabase.storage.from('avatars').getPublicUrl(fileName);
+      }
+
+      final updateData = <String, dynamic>{
+        'full_name': _nameController.text,
+        'bio': _bioController.text,
+      };
+      if (avatarUrl != null) updateData['avatar_url'] = avatarUrl;
+
+      await supabase.from('users').update(updateData).eq('user_id', userId);
+
+      await supabase.auth.updateUser(
+        UserAttributes(data: {'full_name': _nameController.text}),
       );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile updated successfully! ✅')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
-  @override
-  void dispose() {
-    _nameController.dispose(); // Frees memory used by name text field
-    _locationController.dispose();
-    _aboutController.dispose();
-    super.dispose();
+  Future<void> _logout() async {
+    await supabase.auth.signOut();
+    if (mounted) {
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+    }
   }
 
   @override
@@ -64,21 +131,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           icon: const Icon(Icons.arrow_back, color: brown),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Edit Profile',
-          style: TextStyle(
-            color: brown,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+        title: const Text('Edit Profile',
+            style: TextStyle(
+                color: brown, fontSize: 18, fontWeight: FontWeight.w700)),
         centerTitle: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings, color: brown),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: SafeArea(
         child: Form(
@@ -88,6 +144,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                // Avatar
                 GestureDetector(
                   onTap: _pickImage,
                   child: Stack(
@@ -99,16 +156,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           color: card,
                           shape: BoxShape.circle,
                           border: Border.all(color: border, width: 3),
-                          image: _selectedImage != null
-                              ? DecorationImage(
-                                  image: FileImage(_selectedImage!),
-                                  fit: BoxFit.cover,
-                                )
-                              : null,
                         ),
-                        child: _selectedImage == null
-                            ? const Icon(Icons.person, size: 50, color: muted)
-                            : null,
+                        child: ClipOval(
+                          child: _selectedImage != null
+                              ? (kIsWeb
+                                  ? Image.memory(_selectedImage,
+                                      fit: BoxFit.cover)
+                                  : Image.file(_selectedImage,
+                                      fit: BoxFit.cover))
+                              : widget.avatarUrl != null &&
+                                      widget.avatarUrl!.isNotEmpty
+                                  ? Image.network(widget.avatarUrl!,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => const Icon(
+                                          Icons.person,
+                                          size: 50,
+                                          color: muted))
+                                  : const Icon(Icons.person,
+                                      size: 50, color: muted),
+                        ),
                       ),
                       Positioned(
                         bottom: 0,
@@ -116,20 +182,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(6),
                           decoration: const BoxDecoration(
-                            color: brown,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.edit,
-                            size: 16,
-                            color: Colors.white,
-                          ),
+                              color: brown, shape: BoxShape.circle),
+                          child: const Icon(Icons.edit,
+                              size: 16, color: Colors.white),
                         ),
                       ),
                     ],
                   ),
                 ),
+
                 const SizedBox(height: 24),
+
+                // Full Name
                 _buildTextField(
                   controller: _nameController,
                   label: 'Full Name',
@@ -141,77 +205,65 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     return null;
                   },
                 ),
+
                 const SizedBox(height: 16),
+
+                // Bio
                 _buildTextField(
-                  controller: _locationController,
-                  label: 'Location',
-                  hint: 'e.g. Cairo, Egypt',
-                  icon: Icons.location_on_outlined,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your location';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                _buildTextField(
-                  controller: _aboutController,
+                  controller: _bioController,
                   label: 'About Me',
-                  hint: 'Tell hosts and students about yourself...',
-                  maxLines: 5,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please tell us about yourself';
-                    }
-                    return null;
-                  },
+                  hint: 'Tell students about yourself...',
+                  maxLines: 4,
                 ),
+
                 const SizedBox(height: 32),
+
+                // Save
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _saveProfile,
+                    onPressed: _isLoading ? null : _saveProfile,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: brown,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                          borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: const Text(
-                      'Save Changes',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2),
+                          )
+                        : const Text('Save Changes',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600)),
                   ),
                 ),
+
                 const SizedBox(height: 16),
+
+                // Logout
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
-                    onPressed: () {},
+                    onPressed: _logout,
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       side: const BorderSide(color: muted),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                          borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: const Text(
-                      'Log Out',
-                      style: TextStyle(
-                        color: muted,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    child: const Text('Log Out',
+                        style: TextStyle(
+                            color: muted,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600)),
                   ),
                 ),
-                const SizedBox(height: 40),
               ],
             ),
           ),
@@ -225,20 +277,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     required String label,
     required String hint,
     int maxLines = 1,
-    IconData? icon,
     String? Function(String?)? validator,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: brown,
-          ),
-        ),
+        Text(label,
+            style: const TextStyle(
+                fontSize: 14, fontWeight: FontWeight.w600, color: brown)),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
@@ -247,29 +293,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           style: const TextStyle(color: brown, fontSize: 15),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: muted.withValues(alpha: 0.6)),
             filled: true,
             fillColor: card,
             contentPadding: const EdgeInsets.all(16),
-            prefixIcon: icon != null
-                ? Icon(icon, color: muted, size: 20)
-                : null,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: border),
-            ),
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: border)),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: border),
-            ),
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: border)),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: brown, width: 1.5),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Colors.red),
-            ),
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: brown, width: 1.5)),
           ),
         ),
       ],

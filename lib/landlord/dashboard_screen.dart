@@ -22,17 +22,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _loadListings();
   }
 
+  String? _avatarUrl;
   Future<void> _loadListings() async {
     setState(() => _isLoading = true);
     try {
       final landlordId = supabase.auth.currentUser?.id;
+
+      // جيب صورة الـ user
+      final userResponse = await supabase
+          .from('users')
+          .select('avatar_url')
+          .eq('user_id', landlordId!)
+          .maybeSingle();
+
       final response = await supabase
           .from('property_listings')
           .select()
-          .eq('landlord_id', landlordId!)
+          .eq('landlord_id', landlordId)
           .order('created_at', ascending: false);
 
       setState(() {
+        _avatarUrl = userResponse?['avatar_url'];
         _listings = List<Map<String, dynamic>>.from(response);
         _isLoading = false;
       });
@@ -66,8 +76,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       color: const Color(0xFF1A0F0A),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child:
-                        const Icon(Icons.person, color: Colors.white, size: 20),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: _avatarUrl != null && _avatarUrl!.isNotEmpty
+                          ? Image.network(
+                              _avatarUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Icon(
+                                  Icons.person,
+                                  color: Colors.white,
+                                  size: 20),
+                            )
+                          : const Icon(Icons.person,
+                              color: Colors.white, size: 20),
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Text(
@@ -103,7 +125,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      "Good morning,\n$_userName.",
+                      "Hello,\n$_userName.",
                       style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
