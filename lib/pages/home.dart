@@ -11,7 +11,6 @@ import 'package:sakina/pages/messages/chat_screen/messages.dart';
 import 'package:sakina/pages/widgets/services_near_you.dart';
 import 'package:sakina/pages/widgets/top_match.dart';
 import 'package:sakina/features/map/screens/map_screen.dart';
-import 'package:sakina/pages/messages/chat_screen/messages.dart';
 
 // ─── Entry point screen ───────────────────────────────────────────────────────
 class HomePage extends StatefulWidget {

@@ -104,11 +104,12 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
           .select('latitude, longitude')
           .eq('listing_id', widget.listingId)
           .maybeSingle();
-      if (locData != null)
+      if (locData != null) {
         setState(() {
           _latitude = locData['latitude']?.toDouble();
           _longitude = locData['longitude']?.toDouble();
         });
+      }
     } catch (e) {}
   }
 
@@ -806,10 +807,12 @@ class _GridPainter extends CustomPainter {
     final paint = Paint()
       ..color = AppColors.border.withValues(alpha: 0.6)
       ..strokeWidth = 0.5;
-    for (double x = 0; x < size.width; x += 46)
+    for (double x = 0; x < size.width; x += 46) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    for (double y = 0; y < size.height; y += 26)
+    }
+    for (double y = 0; y < size.height; y += 26) {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
   }
 
   @override
