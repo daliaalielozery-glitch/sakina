@@ -4,6 +4,8 @@ import 'add_listing_screen.dart';
 import 'listing_details_screen.dart';
 import 'host_profile_screen.dart';
 import 'package:sakina/landlord/landlord_sidebar.dart';
+import 'package:sakina/features/notifications/notifications_screen.dart';
+import 'package:sakina/pages/messages/chat_screen/messages.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -109,7 +111,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                   const Spacer(),
-                  const Icon(Icons.notifications_none),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const NotificationsScreen()),
+                      );
+                    },
+                    child: const Icon(Icons.notifications_none),
+                  ),
                 ],
               ),
             ),
@@ -321,7 +332,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             NavItem(Icons.grid_view, "DASHBOARD", active: true),
-            NavItem(Icons.chat_bubble_outline, "MESSAGES", active: false),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const ConversationsScreen()),
+                );
+              },
+              child:
+                  NavItem(Icons.chat_bubble_outline, "MESSAGES", active: false),
+            ),
             GestureDetector(
               onTap: () => Navigator.push(
                 context,
