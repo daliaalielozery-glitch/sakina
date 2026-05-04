@@ -70,8 +70,8 @@ class _PersonalInformationScreenState
             .maybeSingle(),
       ]);
 
-      final user = results[0] as Map<String, dynamic>?;
-      final tenant = results[1] as Map<String, dynamic>?;
+      final user = results[0];
+      final tenant = results[1];
 
       if (mounted) {
         setState(() {

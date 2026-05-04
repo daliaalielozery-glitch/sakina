@@ -4,7 +4,6 @@ import 'package:sakina/features/listings/bloc/listings_bloc.dart';
 import 'package:sakina/features/listings/bloc/listings_event.dart';
 import 'package:sakina/features/listings/bloc/listings_state.dart';
 import 'package:sakina/features/listings/models/listing_model.dart';
-import 'package:sakina/features/listings/repository/listings_repository.dart';
 import 'package:sakina/features/listings/listings_details/listings_details.dart';
 
 class PropertyListingScreen extends StatefulWidget {

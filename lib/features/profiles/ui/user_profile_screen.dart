@@ -71,9 +71,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             .maybeSingle(),
       ]);
 
-      final user = results[0] as Map<String, dynamic>?;
-      final tenant = results[1] as Map<String, dynamic>?;
-      final lifestyle = results[2] as Map<String, dynamic>?;
+      final user = results[0];
+      final tenant = results[1];
+      final lifestyle = results[2];
 
       if (mounted) {
         setState(() {
@@ -107,11 +107,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   String _buildBio() {
     final parts = <String>[];
-    if (_circadianRhythm.isNotEmpty)
+    if (_circadianRhythm.isNotEmpty) {
       parts.add(_circadianRhythm.replaceAll('_', ' '));
+    }
     if (_socialThreshold.isNotEmpty) parts.add(_socialThreshold);
-    if (_smokingPreferences.isNotEmpty)
+    if (_smokingPreferences.isNotEmpty) {
       parts.add(_smokingPreferences.replaceAll('_', ' '));
+    }
     if (_petsAllowed) parts.add('pet-friendly');
     if (parts.isEmpty) return '';
     return 'A ${parts.join(', ')} student looking for the right living space and compatible roommates.';

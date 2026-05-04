@@ -164,8 +164,9 @@ class _AiMatchScreenState extends State<AiMatchScreen> {
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      onPressed: () =>
-                          setState(() => _future = _repo.fetchMatches()),
+                     onPressed: () {
+  setState(() { _future = _repo.fetchMatches(); });
+},
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1C1C1C),
                         foregroundColor: Colors.white,

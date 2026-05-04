@@ -1,0 +1,545 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface LifestyleProfile {
+  profile_id: string;
+  user_id: string;
+  pets_allowed: boolean;
+  environmental_order: string; // 'relaxed' | 'moderate' | 'immaculate'
+  circadian_rhythm: string;    // 'early_bird' | 'night_owl' | 'flexible'
+  study_hours: number;         // 1-16
+  study_time: string;          // 'morning' | 'afternoon' | 'evening' | 'night'
+  smoking_preferences: string; // 'non_smoker' | 'smoker' | 'outside_only'
+  social_threshold: string;    // 'introverted' | 'balanced' | 'extroverted'
+  listing_id: string | null;
+}
+
+interface Listing {
+  listing_id: string;
+  landlord_id: string;
+  title: string;
+  description: string;
+  rent_price: number;
+  status: string;
+  property_type: string;
+  available_rooms: number;
+  has_360_tour: boolean;
+  image_url: string;
+}
+
+interface Tenant {
+  tenant_id: string;
+  user_id: string;
+  university: string;
+  full_name: string;
+  avatar_url: string;
+  lifestyle_profile: LifestyleProfile | null;
+}
+
+interface PropertyMatch {
+  listing: Listing;
+  score: number;        // 0-100
+  breakdown: {
+    budget: number;
+    propertyType: number;
+    rooms: number;
+    pets: number;
+    smoking: number;
+  };
+  reasons: string[];
+}
+
+interface RoommateMatch {
+  tenant: Tenant;
+  score: number;        // 0-100
+  breakdown: {
+    circadian: number;
+    social: number;
+    smoking: number;
+    studyTime: number;
+    cleanliness: number;
+  };
+  reasons: string[];
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FUZZY LOGIC ENGINE — Roommate Matching
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Fuzzy membership functions — return value 0.0 to 1.0
+function fuzzyCircadian(a: string, b: string): number {
+  if (a === b) return 1.0;
+  if (a === "flexible" || b === "flexible") return 0.6;
+  // early_bird vs night_owl = worst match
+  return 0.1;
+}
+
+function fuzzySocial(a: string, b: string): number {
+  const order: Record<string, number> = {
+    introverted: 0,
+    balanced: 1,
+    extroverted: 2,
+  };
+  const diff = Math.abs((order[a] ?? 1) - (order[b] ?? 1));
+  if (diff === 0) return 1.0;
+  if (diff === 1) return 0.5;
+  return 0.1;
+}
+
+function fuzzySmoking(a: string, b: string): number {
+  if (a === b) return 1.0;
+  if (a === "non_smoker" && b === "smoker") return 0.0;
+  if (a === "smoker" && b === "non_smoker") return 0.0;
+  if (a === "outside_only" || b === "outside_only") return 0.5;
+  return 0.5;
+}
+
+function fuzzyStudyTime(a: string, b: string): number {
+  if (a === b) return 1.0;
+  const adjacent: Record<string, string[]> = {
+    morning: ["afternoon"],
+    afternoon: ["morning", "evening"],
+    evening: ["afternoon", "night"],
+    night: ["evening"],
+  };
+  if (adjacent[a]?.includes(b)) return 0.6;
+  return 0.2;
+}
+
+function fuzzyCleanliness(a: string, b: string): number {
+  const order: Record<string, number> = {
+    relaxed: 0,
+    moderate: 1,
+    immaculate: 2,
+  };
+  const diff = Math.abs((order[a] ?? 1) - (order[b] ?? 1));
+  if (diff === 0) return 1.0;
+  if (diff === 1) return 0.5;
+  return 0.1;
+}
+
+// Fuzzy rule base — IF conditions THEN adjust score
+function applyFuzzyRules(
+  a: LifestyleProfile,
+  b: LifestyleProfile,
+  rawScore: number
+): number {
+  let adjustment = 0;
+
+  // Rule 1: IF both non-smokers AND same sleep schedule THEN HIGH compatibility
+  if (
+    a.smoking_preferences === "non_smoker" &&
+    b.smoking_preferences === "non_smoker" &&
+    a.circadian_rhythm === b.circadian_rhythm
+  ) {
+    adjustment += 5;
+  }
+
+  // Rule 2: IF one smoker AND other non-smoker THEN VERY LOW compatibility
+  if (
+    (a.smoking_preferences === "smoker" &&
+      b.smoking_preferences === "non_smoker") ||
+    (a.smoking_preferences === "non_smoker" &&
+      b.smoking_preferences === "smoker")
+  ) {
+    adjustment -= 15;
+  }
+
+  // Rule 3: IF both introverted THEN HIGH compatibility
+  if (
+    a.social_threshold === "introverted" &&
+    b.social_threshold === "introverted"
+  ) {
+    adjustment += 5;
+  }
+
+  // Rule 4: IF extroverted + introverted THEN LOW compatibility
+  if (
+    (a.social_threshold === "extroverted" &&
+      b.social_threshold === "introverted") ||
+    (a.social_threshold === "introverted" &&
+      b.social_threshold === "extroverted")
+  ) {
+    adjustment -= 10;
+  }
+
+  // Rule 5: IF both immaculate cleanliness THEN BONUS
+  if (
+    a.environmental_order === "immaculate" &&
+    b.environmental_order === "immaculate"
+  ) {
+    adjustment += 5;
+  }
+
+  // Rule 6: IF relaxed + immaculate THEN PENALTY
+  if (
+    (a.environmental_order === "relaxed" &&
+      b.environmental_order === "immaculate") ||
+    (a.environmental_order === "immaculate" &&
+      b.environmental_order === "relaxed")
+  ) {
+    adjustment -= 8;
+  }
+
+  return Math.min(100, Math.max(0, rawScore + adjustment));
+}
+
+// Main roommate match scorer
+function scoreRoommate(
+  myProfile: LifestyleProfile,
+  theirProfile: LifestyleProfile
+): { score: number; breakdown: RoommateMatch["breakdown"]; reasons: string[] } {
+  const circadian = fuzzyCircadian(
+    myProfile.circadian_rhythm,
+    theirProfile.circadian_rhythm
+  );
+  const social = fuzzySocial(
+    myProfile.social_threshold,
+    theirProfile.social_threshold
+  );
+  const smoking = fuzzySmoking(
+    myProfile.smoking_preferences,
+    theirProfile.smoking_preferences
+  );
+  const studyTime = fuzzyStudyTime(
+    myProfile.study_time,
+    theirProfile.study_time
+  );
+  const cleanliness = fuzzyCleanliness(
+    myProfile.environmental_order,
+    theirProfile.environmental_order
+  );
+
+  // Weighted average (weights sum to 1.0)
+  const weights = {
+    circadian: 0.25,
+    social: 0.25,
+    smoking: 0.20,
+    studyTime: 0.15,
+    cleanliness: 0.15,
+  };
+
+  const rawScore =
+    circadian * weights.circadian * 100 +
+    social * weights.social * 100 +
+    smoking * weights.smoking * 100 +
+    studyTime * weights.studyTime * 100 +
+    cleanliness * weights.cleanliness * 100;
+
+  const finalScore = applyFuzzyRules(myProfile, theirProfile, rawScore);
+
+  // Generate human-readable reasons
+  const reasons: string[] = [];
+
+  if (circadian >= 0.8) {
+    reasons.push(`Same sleep schedule (${myProfile.circadian_rhythm.replace("_", " ")})`);
+  }
+  if (social >= 0.8) {
+    reasons.push(`Matching social style (${myProfile.social_threshold})`);
+  }
+  if (smoking >= 0.9) {
+    reasons.push("Compatible smoking preferences");
+  }
+  if (smoking === 0.0) {
+    reasons.push("⚠️ Incompatible smoking habits");
+  }
+  if (studyTime >= 0.8) {
+    reasons.push(`Same study time (${myProfile.study_time})`);
+  }
+  if (cleanliness >= 0.8) {
+    reasons.push(`Same cleanliness standard (${myProfile.environmental_order})`);
+  }
+
+  return {
+    score: Math.round(finalScore),
+    breakdown: {
+      circadian: Math.round(circadian * 100),
+      social: Math.round(social * 100),
+      smoking: Math.round(smoking * 100),
+      studyTime: Math.round(studyTime * 100),
+      cleanliness: Math.round(cleanliness * 100),
+    },
+    reasons,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// WEIGHTED SCORING ENGINE — Property Matching
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function scoreProperty(
+  profile: LifestyleProfile,
+  listing: Listing,
+  tenantBudget: number
+): { score: number; breakdown: PropertyMatch["breakdown"]; reasons: string[] } {
+
+  // 1. Budget fit (30%) — how well does rent fit the tenant's budget?
+  let budgetScore = 0;
+  if (listing.rent_price <= tenantBudget) {
+    budgetScore = 100;
+  } else {
+    const overage = (listing.rent_price - tenantBudget) / tenantBudget;
+    budgetScore = Math.max(0, 100 - overage * 200);
+  }
+
+  // 2. Property type (20%) — studio/apartment/room
+  // Since we don't store preferred type in lifestyle_profile,
+  // score based on available rooms vs social threshold
+  let typeScore = 70; // neutral default
+  if (
+    profile.social_threshold === "introverted" &&
+    listing.property_type === "studio"
+  ) {
+    typeScore = 100;
+  } else if (
+    profile.social_threshold === "extroverted" &&
+    listing.property_type === "apartment"
+  ) {
+    typeScore = 100;
+  } else if (profile.social_threshold === "balanced") {
+    typeScore = 80;
+  }
+
+  // 3. Available rooms (20%)
+  let roomScore = 0;
+  if (listing.available_rooms >= 1) {
+    roomScore = 100;
+  } else {
+    roomScore = 0;
+  }
+
+  // 4. Pets (15%)
+  const petsScore = profile.pets_allowed ? 80 : 100;
+  // If tenant has pets, slightly lower score (not all listings allow pets)
+  // Future: add pets_allowed field to listings
+
+  // 5. Smoking (15%)
+  let smokingScore = 100;
+  if (profile.smoking_preferences === "smoker") {
+    smokingScore = 60; // smokers have fewer options generally
+  } else if (profile.smoking_preferences === "outside_only") {
+    smokingScore = 80;
+  }
+
+  // Weighted total
+  const weights = {
+    budget: 0.30,
+    type: 0.20,
+    rooms: 0.20,
+    pets: 0.15,
+    smoking: 0.15,
+  };
+
+  const rawScore =
+    budgetScore * weights.budget +
+    typeScore * weights.type +
+    roomScore * weights.rooms +
+    petsScore * weights.pets +
+    smokingScore * weights.smoking;
+
+  const finalScore = Math.min(100, Math.round(rawScore));
+
+  // Reasons
+  const reasons: string[] = [];
+  if (budgetScore >= 90) {
+    reasons.push(`Within your budget (EGP ${listing.rent_price.toLocaleString()}/mo)`);
+  } else if (budgetScore < 50) {
+    reasons.push(`⚠️ Above your budget by EGP ${(listing.rent_price - tenantBudget).toLocaleString()}`);
+  }
+  if (roomScore === 100) {
+    reasons.push(`${listing.available_rooms} room(s) available`);
+  }
+  if (listing.has_360_tour) {
+    reasons.push("360° virtual tour available");
+  }
+  if (typeScore >= 90) {
+    reasons.push(`${listing.property_type} suits your lifestyle`);
+  }
+
+  return {
+    score: finalScore,
+    breakdown: {
+      budget: Math.round(budgetScore),
+      propertyType: Math.round(typeScore),
+      rooms: Math.round(roomScore),
+      pets: Math.round(petsScore),
+      smoking: Math.round(smokingScore),
+    },
+    reasons,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EDGE FUNCTION HANDLER
+// ═══════════════════════════════════════════════════════════════════════════════
+
+Deno.serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  try {
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Get authenticated user
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Get request body (optional: tenant's budget)
+    const body = await req.json().catch(() => ({}));
+    const tenantBudget: number = body.budget ?? 15000;
+
+    // ── Fetch current tenant's lifestyle profile ──────────────────────────────
+    const { data: myProfile, error: profileError } = await supabase
+      .from("lifestyle_profile")
+      .select("*")
+      .eq("user_id", user.id)
+      .single();
+
+    if (profileError || !myProfile) {
+      return new Response(
+        JSON.stringify({ error: "Lifestyle profile not found. Please complete the survey first." }),
+        {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // ── Fetch all available listings ──────────────────────────────────────────
+    const { data: listings, error: listingsError } = await supabase
+      .from("property_listings")
+      .select("*")
+      .eq("status", "available")
+      .gt("available_rooms", 0);
+
+    if (listingsError) throw listingsError;
+
+    // ── Fetch all other tenants with their profiles ───────────────────────────
+    const { data: otherTenants, error: tenantsError } = await supabase
+      .from("tenants")
+      .select(`
+        tenant_id,
+        
+        university,
+        users!inner (
+          full_name,
+          avatar_url
+        ),
+        lifestyle_profile!left (
+          profile_id,
+          
+          pets_allowed,
+          environmental_order,
+          circadian_rhythm,
+          study_hours,
+          study_time,
+          smoking_preferences,
+          social_threshold
+        )
+      `)
+      .neq("tenant_id", user.id); // exclude self
+
+    if (tenantsError) throw tenantsError;
+
+    // ── Score properties ──────────────────────────────────────────────────────
+    const propertyMatches: PropertyMatch[] = (listings ?? [])
+      .map((listing: Listing) => {
+        const { score, breakdown, reasons } = scoreProperty(
+          myProfile,
+          listing,
+          tenantBudget
+        );
+        return { listing, score, breakdown, reasons };
+      })
+      .filter((m: PropertyMatch) => m.score > 30) // filter out very poor matches
+      .sort((a: PropertyMatch, b: PropertyMatch) => b.score - a.score)
+      .slice(0, 10); // top 10
+
+    // ── Score roommates ───────────────────────────────────────────────────────
+    const roommateMatches: RoommateMatch[] = (otherTenants ?? [])
+      .filter((t: any) => t.lifestyle_profile) // only tenants with profiles
+      .map((tenant: any) => {
+        const theirProfile = Array.isArray(tenant.lifestyle_profile)
+          ? tenant.lifestyle_profile[0]
+          : tenant.lifestyle_profile;
+
+        if (!theirProfile) return null;
+
+        const { score, breakdown, reasons } = scoreRoommate(myProfile, theirProfile);
+
+        return {
+          tenant: {
+            tenant_id: tenant.tenant_id,
+            user_id: tenant.
+            university: tenant.university,
+            full_name: tenant.users?.full_name ?? "Unknown",
+            avatar_url: tenant.users?.avatar_url ?? "",
+            lifestyle_profile: theirProfile,
+          },
+          score,
+          breakdown,
+          reasons,
+        };
+      })
+      .filter((m: any) => m !== null && m.score > 40) // filter poor matches
+      .sort((a: any, b: any) => b.score - a.score)
+      .slice(0, 10); // top 10
+
+    // ── Return results ────────────────────────────────────────────────────────
+    return new Response(
+      JSON.stringify({
+        success: true,
+        property_matches: propertyMatches,
+        roommate_matches: roommateMatches,
+        meta: {
+          total_listings_scored: listings?.length ?? 0,
+          total_tenants_scored: otherTenants?.length ?? 0,
+          algorithm: {
+            property: "Weighted Scoring Algorithm",
+            roommate: "Fuzzy Logic Rule-Based System",
+          },
+        },
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+});
+–
+
