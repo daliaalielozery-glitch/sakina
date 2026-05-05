@@ -8,6 +8,8 @@ import 'package:sakina/features/listings/listings_details/widgets/listing_bottom
 import 'package:sakina/features/listings/listings_details/widgets/location_listing.dart';
 import 'package:sakina/features/listings/models/listing_model.dart';
 import 'package:sakina/features/listings/repository/listings_repository.dart';
+import 'package:sakina/pages/messages/chat_screen/chat_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RoomDetailScreen extends StatefulWidget {
   final ListingModel listing;
@@ -92,7 +94,37 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
                   onSubmitReview: (rating, comment) =>
                       _submitReview(listing, rating, comment),
                 ),
-                ListingBottomBar(),
+                ListingBottomBar(
+                  onBookViewing: () {
+                    // TODO: implement booking
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Booking feature coming soon!')),
+                    );
+                  },
+                  onChat: () async {
+                    try {
+                      final convId = await _getOrCreateConversation();
+                      final profile = widget.listing.landlordProfile ??
+                          LandlordProfile.fallback(widget.listing.landlordId);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ChatScreen(
+                            conversationId: convId,
+                            otherUserId: widget.listing.landlordId!,
+                            otherUserName: profile.name,
+                            otherUserAvatar: profile.avatarUrl,
+                          ),
+                        ),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(e.toString())),
+                      );
+                    }
+                  },
+                )
               ],
             ),
           ),
@@ -135,6 +167,66 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
+  }
+
+  Future<String> _getOrCreateConversation() async {
+    final supabase = Supabase.instance.client;
+    final tenantId = supabase.auth.currentUser?.id;
+    if (tenantId == null) throw Exception('Please login to message the host');
+
+    final listing = widget.listing;
+    final landlordId = listing.landlordId;
+    if (landlordId == null || landlordId.isEmpty)
+      throw Exception('Host not found');
+
+    // Check if conversation already exists for this listing (optional)
+    try {
+      final existing = await supabase
+          .from('conversation')
+          .select('conversation_id')
+          .eq('listing_id', listing.listingId)
+          .maybeSingle();
+      if (existing != null) {
+        final participant = await supabase
+            .from('conversation_participants')
+            .select()
+            .eq('conversation_id', existing['conversation_id'])
+            .eq('tenant_id', tenantId)
+            .maybeSingle();
+        if (participant == null) {
+          await supabase.from('conversation_participants').insert({
+            'conversation_id': existing['conversation_id'],
+            'tenant_id': tenantId,
+            'joined_at': DateTime.now().toIso8601String(),
+          });
+        }
+        return existing['conversation_id'];
+      }
+    } catch (_) {
+      // 'listing_id' column might not exist – ignore
+    }
+
+    // Create new conversation
+    final newConv = await supabase
+        .from('conversation')
+        .insert({
+          'user_id': landlordId,
+          if (listing.listingId.isNotEmpty) 'listing_id': listing.listingId,
+          'created_at': DateTime.now().toIso8601String(),
+        })
+        .select()
+        .single();
+
+    final conversationId = newConv['conversation_id'];
+
+    // Add tenant as participant
+    await supabase.from('conversation_participants').insert({
+      'conversation_id': conversationId,
+      'tenant_id': tenantId,
+      'joined_at': DateTime.now().toIso8601String(),
+    });
+
+    return conversationId;
   }
 
   Future<void> _submitReview(

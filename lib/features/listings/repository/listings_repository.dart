@@ -1,7 +1,7 @@
 import 'dart:math' as math;
-
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:sakina/features/listings/models/listing_model.dart';
+import 'package:uuid/uuid.dart';
 
 class ListingsRepository {
   final supabase = Supabase.instance.client;
@@ -19,13 +19,13 @@ class ListingsRepository {
     )
   ''';
 
+  // ========== PUBLIC METHODS ==========
   Future<List<ListingModel>> getAllListings() async {
     final response = await supabase
         .from('property_listings')
         .select(_listingSelect)
         .eq('status', 'available')
         .order('created_at', ascending: false);
-
     return (response as List).map((e) => ListingModel.fromJson(e)).toList();
   }
 
@@ -35,7 +35,6 @@ class ListingsRepository {
         .select(_listingSelect)
         .eq('listing_id', listingId)
         .single();
-
     return _enrichListing(ListingModel.fromJson(response));
   }
 
@@ -46,7 +45,6 @@ class ListingsRepository {
         .eq('property_type', type)
         .eq('status', 'available')
         .order('created_at', ascending: false);
-
     return (response as List).map((e) => ListingModel.fromJson(e)).toList();
   }
 
@@ -57,7 +55,6 @@ class ListingsRepository {
         .or('title.ilike.%$query%,description.ilike.%$query%')
         .eq('status', 'available')
         .order('created_at', ascending: false);
-
     return (response as List).map((e) => ListingModel.fromJson(e)).toList();
   }
 
@@ -68,11 +65,12 @@ class ListingsRepository {
     required String comment,
   }) async {
     final user = supabase.auth.currentUser;
-    if (user == null) {
-      throw Exception('Please log in before writing a review.');
-    }
+    if (user == null) throw Exception('Please log in before writing a review.');
+
+    final reviewId = const Uuid().v4(); // generates a unique ID
 
     await supabase.from('review').insert({
+      'review_id': reviewId, // ✅ this was missing
       'reviewer_id': user.id,
       'listing_id': listingId,
       if (landlordId.isNotEmpty) 'landlord_id': landlordId,
@@ -82,6 +80,7 @@ class ListingsRepository {
     });
   }
 
+  // ========== CORE ENRICHING ==========
   Future<ListingModel> _enrichListing(ListingModel listing) async {
     final profile = await _getLandlordProfile(listing.landlordId);
     final reviews = await _getListingReviews(listing.listingId);
@@ -97,17 +96,68 @@ class ListingsRepository {
           ? listing.reviewCount
           : reviews.isNotEmpty
               ? reviews.length
-              : profile?.reviewCount,
+              : profile?.reviewCount ?? 0,
       publicFacilities: facilities,
       nearbyServices: nearbyServices,
     );
   }
 
+  // ========== PUBLIC FACILITIES (NEW) ==========
+  Future<List<ListingPlace>> getNearbyPublicFacilities(
+    double lat,
+    double lng, {
+    double radiusKm = 2.0,
+  }) async {
+    final deltaLat = radiusKm / 111.0;
+    final deltaLng = radiusKm / (111.0 * math.cos(lat * math.pi / 180));
+    final minLat = lat - deltaLat;
+    final maxLat = lat + deltaLat;
+    final minLng = lng - deltaLng;
+    final maxLng = lng + deltaLng;
+
+    final response = await supabase
+        .from('public_facilities')
+        .select()
+        .gte('latitude', minLat)
+        .lte('latitude', maxLat)
+        .gte('longitude', minLng)
+        .lte('longitude', maxLng)
+        .limit(12);
+
+    final places = (response as List).map((row) {
+      final distanceKm =
+          _distanceKm(lat, lng, row['latitude'], row['longitude']);
+      return ListingPlace(
+        name: row['name'],
+        category: row['category'],
+        distance: _formatDistance(distanceKm),
+        address: row['address'],
+      );
+    }).toList();
+
+    places.sort((a, b) {
+      final aDist =
+          double.tryParse(a.distance?.split(' ').first ?? '999') ?? 999;
+      final bDist =
+          double.tryParse(b.distance?.split(' ').first ?? '999') ?? 999;
+      return aDist.compareTo(bDist);
+    });
+    return places;
+  }
+
+  // ========== INTERNAL FACILITIES FETCH ==========
+  Future<List<ListingPlace>> _getPublicFacilities(ListingModel listing) async {
+    final lat = listing.latitude;
+    final lng = listing.longitude;
+    if (lat == null || lng == null) return const [];
+    return getNearbyPublicFacilities(lat, lng);
+  }
+
+  // ========== LANDLORD PROFILE ==========
   Future<LandlordProfile?> _getLandlordProfile(String? landlordId) async {
     if (landlordId == null || landlordId.isEmpty) return null;
 
     final user = await _getUserRow(landlordId);
-
     Map<String, dynamic>? landlord;
     try {
       landlord = await supabase
@@ -120,7 +170,6 @@ class ListingsRepository {
     }
 
     if (user == null && landlord == null) return null;
-
     return LandlordProfile.fromJson({
       'landlord_id': landlordId,
       if (landlord != null) ...landlord,
@@ -128,6 +177,7 @@ class ListingsRepository {
     });
   }
 
+  // ========== REVIEWS ==========
   Future<List<ListingReview>> _getListingReviews(String listingId) async {
     if (listingId.isEmpty) return const [];
 
@@ -146,13 +196,10 @@ class ListingsRepository {
         if (reviewer != null) 'reviewer': reviewer,
       }));
     }
-
     return reviews;
   }
 
-  Future<List<ListingPlace>> _getPublicFacilities(ListingModel listing) async =>
-      const [];
-
+  // ========== NEARBY SERVICES (existing) ==========
   Future<List<ListingPlace>> _getNearbyServices(ListingModel listing) async {
     final latitude = listing.latitude;
     final longitude = listing.longitude;
@@ -187,15 +234,8 @@ class ListingsRepository {
               serviceLatitude == null ||
               serviceLongitude == null
           ? null
-          : _formatDistance(
-              _distanceKm(
-                latitude,
-                longitude,
-                serviceLatitude,
-                serviceLongitude,
-              ),
-            );
-
+          : _formatDistance(_distanceKm(
+              latitude, longitude, serviceLatitude, serviceLongitude));
       return ListingPlace.fromJson({
         ...row,
         if (distance != null) 'distance': distance,
@@ -207,13 +247,12 @@ class ListingsRepository {
       final bDistance = _distanceNumber(b.distance);
       return aDistance.compareTo(bDistance);
     });
-
     return services.take(6).toList();
   }
 
+  // ========== USER ROW ==========
   Future<Map<String, dynamic>?> _getUserRow(String? userId) async {
     if (userId == null || userId.isEmpty) return null;
-
     try {
       return await supabase
           .from('users')
@@ -225,6 +264,7 @@ class ListingsRepository {
     }
   }
 
+  // ========== UTILITIES ==========
   double? _averageRating(List<ListingReview> reviews) {
     if (reviews.isEmpty) return null;
     final total = reviews.fold<double>(0, (sum, review) => sum + review.rating);

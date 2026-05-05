@@ -9,6 +9,7 @@ import '../utils/universities.dart';
 import 'host_profile_screen.dart';
 import 'dashboard_screen.dart';
 
+// ==================== APP COLORS ====================
 class AppColors {
   static const background = Color(0xFFFAF9F6);
   static const surface = Color(0xFFF2F0EB);
@@ -23,8 +24,10 @@ class AppColors {
   static const white = Color(0xFFFFFFFF);
 }
 
+// ==================== ADD LISTING SCREEN ====================
 class AddListingScreen extends StatefulWidget {
   const AddListingScreen({super.key});
+
   @override
   State<AddListingScreen> createState() => _AddListingScreenState();
 }
@@ -34,6 +37,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
   final _titleController = TextEditingController();
   final _priceController = TextEditingController();
   final _descriptionController = TextEditingController();
+
   String _policy = 'Female Only';
   String _propertyType = 'Apartment';
   String _university = 'American University in Cairo (AUC)';
@@ -45,6 +49,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
   double? _selectedLat;
   double? _selectedLng;
 
+  // Amenities (UI state)
   final _amenities = <String, bool>{
     'Wi-Fi': true,
     'AC': true,
@@ -70,6 +75,15 @@ class _AddListingScreenState extends State<AddListingScreen> {
     super.dispose();
   }
 
+  /// Returns the list of selected amenity names (e.g., ["Wi-Fi", "AC"])
+  List<String> get _selectedAmenities {
+    return _amenities.entries
+        .where((entry) => entry.value)
+        .map((entry) => entry.key)
+        .toList();
+  }
+
+  // ==================== IMAGE PICKING ====================
   Future<void> _pickImage(ImageSource source) async {
     try {
       final XFile? image = await _picker.pickImage(source: source);
@@ -147,6 +161,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
     );
   }
 
+  // ==================== PUBLISH LISTING ====================
   Future<void> _publishListing() async {
     if (_titleController.text.isEmpty ||
         _priceController.text.isEmpty ||
@@ -159,6 +174,8 @@ class _AddListingScreenState extends State<AddListingScreen> {
     try {
       final user = supabase.auth.currentUser;
       if (user == null) throw Exception('Not logged in');
+
+      // 1. Insert the listing including amenities array
       final response = await supabase
           .from('property_listings')
           .insert({
@@ -170,13 +187,16 @@ class _AddListingScreenState extends State<AddListingScreen> {
             'property_type': _propertyType.toLowerCase(),
             'available_rooms': 1,
             'status': 'available',
+            'amenities': _selectedAmenities, // ✅ store selected amenities
           })
           .select()
           .single();
+
       final listingId = response['listing_id'];
       final folderPath = listingId.toString();
       List<String> imageUrls = [];
 
+      // 2. Upload images to storage (folder = listingId)
       for (int i = 0; i < _photos.length; i++) {
         final file = _photos[i];
         final fullPath = '$folderPath/$i.jpg';
@@ -201,11 +221,15 @@ class _AddListingScreenState extends State<AddListingScreen> {
         imageUrls.add(
             supabase.storage.from('listing-images').getPublicUrl(fullPath));
       }
+
+      // 3. Set primary image URL
       if (imageUrls.isNotEmpty) {
         await supabase
             .from('property_listings')
             .update({'image_url': imageUrls.first}).eq('listing_id', listingId);
       }
+
+      // 4. Insert location
       await supabase.from('location').insert({
         'listing_id': listingId,
         'address': _selectedAddress,
@@ -216,21 +240,22 @@ class _AddListingScreenState extends State<AddListingScreen> {
         'latitude': _selectedLat,
         'longitude': _selectedLng,
       });
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Listing published! 🎉')));
         Navigator.pop(context);
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted)
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
+  // ==================== BUILD ====================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -267,6 +292,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
     );
   }
 
+  // ==================== UI SECTIONS ====================
   Widget _mediaSection() {
     final allPhotos = kIsWeb ? _webImages : _photos;
     return Padding(
@@ -335,11 +361,10 @@ class _AddListingScreenState extends State<AddListingScreen> {
                       child: GestureDetector(
                         onTap: () {
                           setState(() {
-                            if (kIsWeb) {
+                            if (kIsWeb)
                               _webImages.removeAt(index);
-                            } else {
+                            else
                               _photos.removeAt(index);
-                            }
                           });
                         },
                         child: Container(
@@ -682,7 +707,8 @@ class _InputField extends StatelessWidget {
   const _InputField(
       {required this.label,
       required this.hint,
-      this.keyboardType = TextInputType.text}) : controller = null;
+      this.keyboardType = TextInputType.text,
+      this.controller});
   @override
   Widget build(BuildContext context) {
     return Column(

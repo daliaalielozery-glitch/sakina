@@ -3,6 +3,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'add_listing_screen.dart';
 import 'listing_details_screen.dart';
 import 'host_profile_screen.dart';
+import 'package:sakina/landlord/landlord_sidebar.dart';
+import 'package:sakina/features/notifications/notifications_screen.dart';
+import 'package:sakina/pages/messages/chat_screen/messages.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -15,6 +18,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final supabase = Supabase.instance.client;
   List<Map<String, dynamic>> _listings = [];
   bool _isLoading = true;
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
@@ -69,26 +73,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Row(
                 children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1A0F0A),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: _avatarUrl != null && _avatarUrl!.isNotEmpty
-                          ? Image.network(
-                              _avatarUrl!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const Icon(
-                                  Icons.person,
-                                  color: Colors.white,
-                                  size: 20),
-                            )
-                          : const Icon(Icons.person,
-                              color: Colors.white, size: 20),
+                  GestureDetector(
+                    onTap: () =>
+                        _scaffoldKey.currentState?.openDrawer(), // ← ده المهم
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1A0F0A),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: _avatarUrl != null && _avatarUrl!.isNotEmpty
+                            ? Image.network(
+                                _avatarUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const Icon(
+                                    Icons.person,
+                                    color: Colors.white,
+                                    size: 20),
+                              )
+                            : const Icon(Icons.person,
+                                color: Colors.white, size: 20),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -101,7 +109,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                   const Spacer(),
-                  const Icon(Icons.notifications_none),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const NotificationsScreen()),
+                      );
+                    },
+                    child: const Icon(Icons.notifications_none),
+                  ),
                 ],
               ),
             ),
@@ -253,8 +270,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       context,
                                       MaterialPageRoute(
                                         builder: (_) => ListingDetailsScreen(
-                                          listingId:
-                                              listing['listing_id'], // ده المهم
+                                          listingId: listing['listing_id'],
                                           title: listing['title'] ?? '',
                                           location:
                                               listing['description'] ?? '',
@@ -313,7 +329,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             NavItem(Icons.grid_view, "DASHBOARD", active: true),
-            NavItem(Icons.chat_bubble_outline, "MESSAGES", active: false),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const ConversationsScreen()),
+                );
+              },
+              child:
+                  NavItem(Icons.chat_bubble_outline, "MESSAGES", active: false),
+            ),
             GestureDetector(
               onTap: () => Navigator.push(
                 context,

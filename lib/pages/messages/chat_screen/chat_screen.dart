@@ -344,28 +344,37 @@ class _ChatScreenState extends State<ChatScreen> {
                     onPressed: () => Navigator.pop(context),
                   ),
                   CircleAvatar(
-                    backgroundImage: widget.otherUserAvatar != null
+                    radius: 20,
+                    backgroundImage: widget.otherUserAvatar != null &&
+                            widget.otherUserAvatar!.isNotEmpty
                         ? NetworkImage(widget.otherUserAvatar!)
                         : null,
-                    child: widget.otherUserAvatar == null
-                        ? const Icon(Icons.person)
+                    child: widget.otherUserAvatar == null ||
+                            widget.otherUserAvatar!.isEmpty
+                        ? const Icon(Icons.person, size: 20)
                         : null,
                   ),
                   const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.otherUserName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: brown,
-                          fontSize: 16,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.otherUserName.isNotEmpty
+                              ? widget.otherUserName
+                              : 'User',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: brown,
+                            fontSize: 16,
+                          ),
                         ),
-                      ),
-                      const Text('ONLINE',
-                          style: TextStyle(fontSize: 12, color: muted)),
-                    ],
+                        const Text(
+                          'Host', // You could change this to 'Landlord' or remove it
+                          style: TextStyle(fontSize: 12, color: muted),
+                        ),
+                      ],
+                    ),
                   ),
                   const Spacer(),
                   GestureDetector(
