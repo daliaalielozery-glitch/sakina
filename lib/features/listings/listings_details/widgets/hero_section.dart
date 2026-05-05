@@ -1,5 +1,4 @@
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:sakina/core/theme/app_colors.dart';
 import 'package:sakina/features/listings/models/listing_model.dart';
@@ -8,7 +7,6 @@ class HeroSection extends StatefulWidget {
   final ListingModel listing;
   final VoidCallback? onViewProfile;
   final VoidCallback? onView360;
-
   const HeroSection({
     super.key,
     required this.listing,
@@ -17,10 +15,10 @@ class HeroSection extends StatefulWidget {
   });
 
   @override
-  State<HeroSection> createState() => HeroSectionState();
+  State<HeroSection> createState() => _HeroSectionState();
 }
 
-class HeroSectionState extends State<HeroSection> {
+class _HeroSectionState extends State<HeroSection> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
@@ -48,8 +46,6 @@ class HeroSectionState extends State<HeroSection> {
         LandlordProfile.fallback(widget.listing.landlordId);
     final avatarUrl = profile.avatarUrl;
     final rating = profile.rating ?? widget.listing.ratingValue;
-    final currentPage =
-        images.isEmpty ? 0 : _currentPage.clamp(0, images.length - 1);
 
     return Stack(
       clipBehavior: Clip.none,
@@ -57,11 +53,10 @@ class HeroSectionState extends State<HeroSection> {
         Container(
           height: 260,
           width: double.infinity,
-          decoration: const BoxDecoration(
-            color: Color(0xFF8AACB8),
-          ),
+          decoration: const BoxDecoration(color: Color(0xFF8AACB8)),
           child: Stack(
             children: [
+              // ---------- Image Carousel ----------
               if (images.isEmpty)
                 const Center(
                   child: Icon(Icons.bed, size: 60, color: Colors.white30),
@@ -69,25 +64,108 @@ class HeroSectionState extends State<HeroSection> {
               else
                 PageView.builder(
                   controller: _pageController,
-                  onPageChanged: (index) {
-                    setState(() {
-                      _currentPage = index;
-                    });
-                  },
+                  onPageChanged: (index) =>
+                      setState(() => _currentPage = index),
                   itemCount: images.length,
                   itemBuilder: (context, index) {
                     return Image.network(
                       images[index],
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => const Center(
-                        child: Icon(Icons.bed, size: 60, color: Colors.white30),
+                        child: Icon(Icons.broken_image,
+                            size: 60, color: Colors.white30),
                       ),
                     );
                   },
                 ),
+
+              // ---------- Left Arrow (previous) ----------
               if (images.length > 1)
                 Positioned(
-                  bottom: 24,
+                  left: 8,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: GestureDetector(
+                      onTap: () {
+                        if (_currentPage > 0) {
+                          _pageController.previousPage(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        }
+                      },
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          shape: BoxShape.circle,
+                        ),
+                        child:
+                            const Icon(Icons.chevron_left, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ),
+
+              // ---------- Right Arrow (next) ----------
+              if (images.length > 1)
+                Positioned(
+                  right: 8,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: GestureDetector(
+                      onTap: () {
+                        if (_currentPage < images.length - 1) {
+                          _pageController.nextPage(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        }
+                      },
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.chevron_right,
+                            color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ),
+
+              // ---------- Image Counter (e.g., 1/5) ----------
+              if (images.length > 1)
+                Positioned(
+                  bottom: 12,
+                  right: 12,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      '${_currentPage + 1} / ${images.length}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+
+              // ---------- Page Indicators (dots) ----------
+              if (images.length > 1)
+                Positioned(
+                  bottom: 12,
                   left: 0,
                   right: 0,
                   child: Row(
@@ -97,10 +175,10 @@ class HeroSectionState extends State<HeroSection> {
                       (index) => AnimatedContainer(
                         duration: const Duration(milliseconds: 300),
                         margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: currentPage == index ? 24 : 8,
+                        width: _currentPage == index ? 24 : 8,
                         height: 8,
                         decoration: BoxDecoration(
-                          color: currentPage == index
+                          color: _currentPage == index
                               ? Colors.white
                               : Colors.white.withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(4),
@@ -112,6 +190,8 @@ class HeroSectionState extends State<HeroSection> {
             ],
           ),
         ),
+
+        // ---------- Price Tag (top left) ----------
         Positioned(
           top: 75,
           left: 16,
@@ -126,9 +206,7 @@ class HeroSectionState extends State<HeroSection> {
                   color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(50),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.35),
-                    width: 1.2,
-                  ),
+                      color: Colors.white.withValues(alpha: 0.35), width: 1.2),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,6 +239,8 @@ class HeroSectionState extends State<HeroSection> {
             ),
           ),
         ),
+
+        // ---------- 360 View button (top right) ----------
         Positioned(
           top: 75,
           right: 16,
@@ -185,6 +265,8 @@ class HeroSectionState extends State<HeroSection> {
             ),
           ),
         ),
+
+        // ---------- Host Avatar & Info (overlapping the image bottom) ----------
         Positioned(
           bottom: -65,
           left: 16,
@@ -199,11 +281,8 @@ class HeroSectionState extends State<HeroSection> {
                     backgroundImage:
                         avatarUrl == null ? null : NetworkImage(avatarUrl),
                     child: avatarUrl == null
-                        ? const Icon(
-                            Icons.person_rounded,
-                            color: Colors.black54,
-                            size: 34,
-                          )
+                        ? const Icon(Icons.person_rounded,
+                            color: Colors.black54, size: 34)
                         : null,
                   ),
                   Positioned(
@@ -256,11 +335,8 @@ class HeroSectionState extends State<HeroSection> {
                     ),
                     Row(
                       children: [
-                        const Icon(
-                          Icons.star_rounded,
-                          color: Color(0xFFF5A623),
-                          size: 16,
-                        ),
+                        const Icon(Icons.star_rounded,
+                            color: Color(0xFFF5A623), size: 16),
                         const SizedBox(width: 3),
                         Text(
                           rating > 0 ? rating.toStringAsFixed(1) : 'New host',

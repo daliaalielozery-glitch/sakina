@@ -10,6 +10,7 @@ import 'host_profile_screen.dart';
 import '../utils/universities.dart';
 import 'dashboard_screen.dart';
 
+// ==================== LOCAL APP COLORS ====================
 class AppColors {
   static const background = Color(0xFFFAF9F6);
   static const surface = Color(0xFFF2F0EB);
@@ -26,15 +27,17 @@ class AppColors {
 
 class ListingDetailsScreen extends StatefulWidget {
   final String listingId, title, location, price, beds, tag, imageUrl;
-  const ListingDetailsScreen(
-      {super.key,
-      required this.listingId,
-      required this.title,
-      required this.location,
-      required this.price,
-      required this.beds,
-      required this.tag,
-      this.imageUrl = ''});
+  const ListingDetailsScreen({
+    super.key,
+    required this.listingId,
+    required this.title,
+    required this.location,
+    required this.price,
+    required this.beds,
+    required this.tag,
+    this.imageUrl = '',
+  });
+
   @override
   State<ListingDetailsScreen> createState() => _ListingDetailsScreenState();
 }
@@ -53,15 +56,18 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
   final _locationController = TextEditingController();
   final _bedsController = TextEditingController();
   final _aboutController = TextEditingController();
-  final _amenities = <String, bool>{
-    'Wi-Fi': true,
-    'AC': true,
+
+  // Amenities map – values will be set from database
+  final Map<String, bool> _amenities = {
+    'Wi-Fi': false,
+    'AC': false,
     'Cleaning Service': false,
     'Maintenance Included': false,
-    'Furnished': true,
+    'Furnished': false,
     'Parking': false,
   };
-  final _amenityIcons = <String, IconData>{
+
+  final Map<String, IconData> _amenityIcons = {
     'Wi-Fi': Icons.wifi,
     'AC': Icons.ac_unit,
     'Cleaning Service': Icons.cleaning_services_outlined,
@@ -82,6 +88,29 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
     _university = 'American University in Cairo (AUC)';
     _isAvailable = widget.tag != 'FULLY BOOKED';
     _loadImagesAndLocation();
+    _loadAmenities();
+  }
+
+  Future<void> _loadAmenities() async {
+    try {
+      final response = await supabase
+          .from('property_listings')
+          .select('amenities')
+          .eq('listing_id', widget.listingId)
+          .maybeSingle();
+      if (response != null && response['amenities'] != null) {
+        final List<dynamic>? amenitiesList = response['amenities'];
+        if (amenitiesList != null) {
+          setState(() {
+            for (var amenity in _amenities.keys) {
+              _amenities[amenity] = amenitiesList.contains(amenity);
+            }
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading amenities: $e');
+    }
   }
 
   Future<void> _loadImagesAndLocation() async {
@@ -173,6 +202,10 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
         ]),
       );
 
+  List<String> get _selectedAmenities {
+    return _amenities.entries.where((e) => e.value).map((e) => e.key).toList();
+  }
+
   Future<void> _saveChanges() async {
     setState(() => _isLoading = true);
     try {
@@ -197,6 +230,7 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
         'rent_price': double.parse(_rentController.text.replaceAll(',', '')),
         'property_type': _propertyType.toLowerCase(),
         'status': _isAvailable ? 'available' : 'fully_booked',
+        'amenities': _selectedAmenities, // ✅ store updated amenities
       }).eq('listing_id', widget.listingId);
       await _loadImagesAndLocation();
       ScaffoldMessenger.of(context)
@@ -547,13 +581,14 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: AppColors.border)),
               child: TextField(
-                  controller: _aboutController,
-                  maxLines: 5,
-                  style: GoogleFonts.manrope(fontSize: 14),
-                  decoration: const InputDecoration(
-                      hintText: 'Describe the property...',
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.all(14))),
+                controller: _aboutController,
+                maxLines: 5,
+                style: GoogleFonts.manrope(fontSize: 14),
+                decoration: const InputDecoration(
+                    hintText: 'Describe the property...',
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.all(14)),
+              ),
             ),
           ],
         ),
@@ -568,10 +603,11 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _saveChanges,
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.gold,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10))),
+                  backgroundColor: AppColors.gold,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
                 child: _isLoading
                     ? const SizedBox(
                         width: 20,
@@ -590,10 +626,11 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _deleteListing,
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.redAccent, width: 1),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10))),
+                  backgroundColor: Colors.white,
+                  side: const BorderSide(color: Colors.redAccent, width: 1),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
                 child: Text('Delete Listing',
                     style: GoogleFonts.manrope(
                         fontSize: 15,
@@ -611,7 +648,7 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
       margin: const EdgeInsets.only(top: 28));
 }
 
-// ==================== HELPER WIDGETS (copy from add_listing_screen or redefine) ====================
+// ==================== HELPER WIDGETS ====================
 class _TopBar extends StatelessWidget {
   const _TopBar();
   @override
@@ -687,14 +724,15 @@ class _InputField extends StatelessWidget {
                 fontSize: 10, fontWeight: FontWeight.w500, color: Colors.grey)),
         const SizedBox(height: 6),
         TextField(
-            controller: controller,
-            keyboardType: keyboardType,
-            decoration: InputDecoration(
-                hintText: hint,
-                filled: true,
-                fillColor: AppColors.surface,
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8)))),
+          controller: controller,
+          keyboardType: keyboardType,
+          decoration: InputDecoration(
+              hintText: hint,
+              filled: true,
+              fillColor: AppColors.surface,
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(8))),
+        ),
       ],
     );
   }
@@ -726,12 +764,13 @@ class _DropdownField extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
-                value: value,
-                isExpanded: true,
-                items: items
-                    .map((i) => DropdownMenuItem(value: i, child: Text(i)))
-                    .toList(),
-                onChanged: onChanged),
+              value: value,
+              isExpanded: true,
+              items: items
+                  .map((i) => DropdownMenuItem(value: i, child: Text(i)))
+                  .toList(),
+              onChanged: onChanged,
+            ),
           ),
         ),
       ],
@@ -776,7 +815,7 @@ class _NavItem extends StatelessWidget {
     return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
       Icon(icon, color: Colors.white),
       const SizedBox(height: 4),
-      Text(label, style: const TextStyle(color: Colors.white, fontSize: 10))
+      Text(label, style: const TextStyle(color: Colors.white, fontSize: 10)),
     ]);
   }
 }
@@ -807,12 +846,10 @@ class _GridPainter extends CustomPainter {
     final paint = Paint()
       ..color = AppColors.border.withValues(alpha: 0.6)
       ..strokeWidth = 0.5;
-    for (double x = 0; x < size.width; x += 46) {
+    for (double x = 0; x < size.width; x += 46)
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y < size.height; y += 26) {
+    for (double y = 0; y < size.height; y += 26)
       canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
   }
 
   @override

@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dashboard_screen.dart';
 import 'edit_profile_screen.dart';
 import 'listing_details_screen.dart';
+import 'package:sakina/features/notifications/notifications_screen.dart';
 
 class HostProfileScreen extends StatefulWidget {
   const HostProfileScreen({super.key});
@@ -179,15 +180,27 @@ class _HostProfileScreenState extends State<HostProfileScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: card,
-                                  borderRadius: BorderRadius.circular(10),
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) =>
+                                            const NotificationsScreen()),
+                                  );
+                                },
+                                child: Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: card,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(
+                                      Icons.notifications_outlined,
+                                      color: brown,
+                                      size: 20),
                                 ),
-                                child: const Icon(Icons.notifications_outlined,
-                                    color: brown, size: 20),
                               ),
                             ],
                           ),
