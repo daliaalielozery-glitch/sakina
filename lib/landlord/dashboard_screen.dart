@@ -64,8 +64,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      key: _scaffoldKey,
-      drawer: const LandlordSidebar(),
       backgroundColor: const Color(0xFFF5EFE6),
       body: SafeArea(
         child: Column(

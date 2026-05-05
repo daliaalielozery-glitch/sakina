@@ -177,6 +177,7 @@ class _HostProfileScreenState extends State<HostProfileScreen> {
                           const SizedBox(height: 6),
 
                           // Bell
+                          // Bell
                           Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
@@ -204,7 +205,6 @@ class _HostProfileScreenState extends State<HostProfileScreen> {
                               ),
                             ],
                           ),
-
                           const SizedBox(height: 20),
 
                           // Profile Photo
