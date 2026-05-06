@@ -11,6 +11,7 @@ import 'package:sakina/features/listings/repository/listings_repository.dart';
 import 'package:sakina/landlord/public_landlord_profile_screen.dart';
 import 'package:sakina/pages/messages/chat_screen/chat_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:sakina/booking/booking.dart';
 
 class RoomDetailScreen extends StatefulWidget {
   final ListingModel listing;
@@ -96,13 +97,14 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
                       _submitReview(listing, rating, comment),
                 ),
                 ListingBottomBar(
-                  onBookViewing: () {
-                    // TODO: implement booking
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Booking feature coming soon!')),
-                    );
-                  },
+                 onBookViewing: () {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => SecureBookingScreen(listing: listing),
+    ),
+  );
+},
                   onChat: () async {
                     try {
                       final convId = await _getOrCreateConversation();
