@@ -47,250 +47,253 @@ class _HeroSectionState extends State<HeroSection> {
     final avatarUrl = profile.avatarUrl;
     final rating = profile.rating ?? widget.listing.ratingValue;
 
-    return Stack(
-      clipBehavior: Clip.none,
+    return Column(
       children: [
-        Container(
-          height: 260,
-          width: double.infinity,
-          decoration: const BoxDecoration(color: Color(0xFF8AACB8)),
-          child: Stack(
-            children: [
-              // ---------- Image Carousel ----------
-              if (images.isEmpty)
-                const Center(
-                  child: Icon(Icons.bed, size: 60, color: Colors.white30),
-                )
-              else
-                PageView.builder(
-                  controller: _pageController,
-                  onPageChanged: (index) =>
-                      setState(() => _currentPage = index),
-                  itemCount: images.length,
-                  itemBuilder: (context, index) {
-                    return Image.network(
-                      images[index],
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Center(
-                        child: Icon(Icons.broken_image,
-                            size: 60, color: Colors.white30),
-                      ),
-                    );
-                  },
-                ),
-
-              // ---------- Left Arrow (previous) ----------
-              if (images.length > 1)
-                Positioned(
-                  left: 8,
-                  top: 0,
-                  bottom: 0,
-                  child: Center(
-                    child: GestureDetector(
-                      onTap: () {
-                        if (_currentPage > 0) {
-                          _pageController.previousPage(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                        }
+        Stack(
+          children: [
+            Container(
+              height: 260,
+              width: double.infinity,
+              decoration: const BoxDecoration(color: Color(0xFF8AACB8)),
+              child: Stack(
+                children: [
+                  // ---------- Image Carousel ----------
+                  if (images.isEmpty)
+                    const Center(
+                      child: Icon(Icons.bed, size: 60, color: Colors.white30),
+                    )
+                  else
+                    PageView.builder(
+                      controller: _pageController,
+                      onPageChanged: (index) =>
+                          setState(() => _currentPage = index),
+                      itemCount: images.length,
+                      itemBuilder: (context, index) {
+                        return Image.network(
+                          images[index],
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Center(
+                            child: Icon(Icons.broken_image,
+                                size: 60, color: Colors.white30),
+                          ),
+                        );
                       },
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.5),
-                          shape: BoxShape.circle,
+                    ),
+
+                  // ---------- Left Arrow ----------
+                  if (images.length > 1)
+                    Positioned(
+                      left: 8,
+                      top: 0,
+                      bottom: 0,
+                      child: Center(
+                        child: GestureDetector(
+                          onTap: () {
+                            if (_currentPage > 0) {
+                              _pageController.previousPage(
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeInOut,
+                              );
+                            }
+                          },
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.chevron_left,
+                                color: Colors.white),
+                          ),
                         ),
-                        child:
-                            const Icon(Icons.chevron_left, color: Colors.white),
                       ),
                     ),
-                  ),
-                ),
 
-              // ---------- Right Arrow (next) ----------
-              if (images.length > 1)
-                Positioned(
-                  right: 8,
-                  top: 0,
-                  bottom: 0,
-                  child: Center(
-                    child: GestureDetector(
-                      onTap: () {
-                        if (_currentPage < images.length - 1) {
-                          _pageController.nextPage(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                        }
-                      },
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.5),
-                          shape: BoxShape.circle,
+                  // ---------- Right Arrow ----------
+                  if (images.length > 1)
+                    Positioned(
+                      right: 8,
+                      top: 0,
+                      bottom: 0,
+                      child: Center(
+                        child: GestureDetector(
+                          onTap: () {
+                            if (_currentPage < images.length - 1) {
+                              _pageController.nextPage(
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeInOut,
+                              );
+                            }
+                          },
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.chevron_right,
+                                color: Colors.white),
+                          ),
                         ),
-                        child: const Icon(Icons.chevron_right,
-                            color: Colors.white),
                       ),
                     ),
-                  ),
-                ),
 
-              // ---------- Image Counter (e.g., 1/5) ----------
-              if (images.length > 1)
-                Positioned(
-                  bottom: 12,
-                  right: 12,
+                  // ---------- Image Counter ----------
+                  if (images.length > 1)
+                    Positioned(
+                      bottom: 12,
+                      right: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          '${_currentPage + 1} / ${images.length}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // ---------- Page Indicators ----------
+                  if (images.length > 1)
+                    Positioned(
+                      bottom: 12,
+                      left: 0,
+                      right: 0,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(
+                          images.length,
+                          (index) => AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            width: _currentPage == index ? 24 : 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: _currentPage == index
+                                  ? Colors.white
+                                  : Colors.white.withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            // ---------- Price Tag ----------
+            Positioned(
+              top: 75,
+              left: 16,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(50),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(16),
+                      color: Colors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(50),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.35),
+                          width: 1.2),
                     ),
-                    child: Text(
-                      '${_currentPage + 1} / ${images.length}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ),
-
-              // ---------- Page Indicators (dots) ----------
-              if (images.length > 1)
-                Positioned(
-                  bottom: 12,
-                  left: 0,
-                  right: 0,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(
-                      images.length,
-                      (index) => AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: _currentPage == index ? 24 : 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: _currentPage == index
-                              ? Colors.white
-                              : Colors.white.withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'STARTING AT',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontFamily: 'Manrope',
+                            fontWeight: FontWeight.w400,
+                            height: 1.33,
+                            letterSpacing: 1.20,
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 2),
+                        Text(
+                          widget.listing.priceDisplay,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontFamily: 'Manrope',
+                            fontWeight: FontWeight.w700,
+                            height: 1.40,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-            ],
-          ),
-        ),
+              ),
+            ),
 
-        // ---------- Price Tag (top left) ----------
-        Positioned(
-          top: 75,
-          left: 16,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(50),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(50),
-                  border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.35), width: 1.2),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'STARTING AT',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontFamily: 'Manrope',
-                        fontWeight: FontWeight.w400,
-                        height: 1.33,
-                        letterSpacing: 1.20,
-                      ),
+            // ---------- 360 View button ----------
+            Positioned(
+              top: 75,
+              right: 16,
+              child: GestureDetector(
+                onTap: widget.onView360,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0XFF2C2005),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    '360 view',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontFamily: 'Manrope',
+                      fontWeight: FontWeight.w700,
+                      height: 2,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      widget.listing.priceDisplay,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontFamily: 'Manrope',
-                        fontWeight: FontWeight.w700,
-                        height: 1.40,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ),
 
-        // ---------- 360 View button (top right) ----------
-        Positioned(
-          top: 75,
-          right: 16,
-          child: GestureDetector(
-            onTap: widget.onView360,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0XFF2C2005),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Text(
-                '360 view',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontFamily: 'Manrope',
-                  fontWeight: FontWeight.w700,
-                  height: 2,
-                ),
-              ),
-            ),
-          ),
-        ),
-
-        // ---------- Host Avatar & Info (overlapping the image bottom) ----------
-        Positioned(
-          bottom: -65,
-          left: 16,
-          right: 16,
+        // ---------- Host Avatar & Info (in normal flow — tappable) ----------
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           child: Row(
             children: [
-              Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 45,
-                    backgroundColor: AppColors.primaryBeig,
-                    backgroundImage:
-                        avatarUrl == null ? null : NetworkImage(avatarUrl),
-                    child: avatarUrl == null
-                        ? const Icon(Icons.person_rounded,
-                            color: Colors.black54, size: 34)
-                        : null,
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: GestureDetector(
-                      onTap: widget.onViewProfile,
+              GestureDetector(
+                onTap: widget.onViewProfile,
+                child: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 45,
+                      backgroundColor: AppColors.primaryBeig,
+                      backgroundImage:
+                          avatarUrl == null ? null : NetworkImage(avatarUrl),
+                      child: avatarUrl == null
+                          ? const Icon(Icons.person_rounded,
+                              color: Colors.black54, size: 34)
+                          : null,
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 2),
                         decoration: BoxDecoration(
@@ -313,8 +316,8 @@ class _HeroSectionState extends State<HeroSection> {
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -339,7 +342,9 @@ class _HeroSectionState extends State<HeroSection> {
                             color: Color(0xFFF5A623), size: 16),
                         const SizedBox(width: 3),
                         Text(
-                          rating > 0 ? rating.toStringAsFixed(1) : 'New host',
+                          rating > 0
+                              ? rating.toStringAsFixed(1)
+                              : 'New host',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(

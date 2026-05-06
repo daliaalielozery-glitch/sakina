@@ -8,6 +8,7 @@ import 'package:sakina/features/listings/listings_details/widgets/listing_bottom
 import 'package:sakina/features/listings/listings_details/widgets/location_listing.dart';
 import 'package:sakina/features/listings/models/listing_model.dart';
 import 'package:sakina/features/listings/repository/listings_repository.dart';
+import 'package:sakina/landlord/public_landlord_profile_screen.dart';
 import 'package:sakina/pages/messages/chat_screen/chat_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -73,7 +74,7 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
                   onViewProfile: () => _showLandlordProfile(listing),
                   onView360: () => _show360Tour(listing),
                 ),
-                const SizedBox(height: 80),
+                const SizedBox(height: 16),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
@@ -148,24 +149,37 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
   }
 
   void _showLandlordProfile(ListingModel listing) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFFF0EBE0),
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    final landlordId = listing.landlordId;
+    if (landlordId == null || landlordId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Host profile not available.')),
+      );
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PublicLandlordProfileScreen(landlordId: landlordId),
       ),
-      builder: (_) => _LandlordProfileSheet(listing: listing),
     );
   }
 
   void _show360Tour(ListingModel listing) {
-    final message = listing.has360Experience
-        ? '360 view is available for this listing.'
-        : '360 view button is ready. The host has not uploaded a 360 tour yet.';
+    final tourUrl = listing.tour360Url?.trim();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+    if (tourUrl == null || tourUrl.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('The host has not uploaded a 360 tour yet.')),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _Tour360Screen(url: tourUrl),
+      ),
     );
   }
 
@@ -179,7 +193,6 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
     if (landlordId == null || landlordId.isEmpty)
       throw Exception('Host not found');
 
-    // Check if conversation already exists for this listing (optional)
     try {
       final existing = await supabase
           .from('conversation')
@@ -202,11 +215,8 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
         }
         return existing['conversation_id'];
       }
-    } catch (_) {
-      // 'listing_id' column might not exist – ignore
-    }
+    } catch (_) {}
 
-    // Create new conversation
     final newConv = await supabase
         .from('conversation')
         .insert({
@@ -219,7 +229,6 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
 
     final conversationId = newConv['conversation_id'];
 
-    // Add tenant as participant
     await supabase.from('conversation_participants').insert({
       'conversation_id': conversationId,
       'tenant_id': tenantId,
@@ -521,204 +530,64 @@ class _RefreshErrorBanner extends StatelessWidget {
   }
 }
 
-class _LandlordProfileSheet extends StatelessWidget {
-  final ListingModel listing;
-
-  const _LandlordProfileSheet({required this.listing});
+class _Tour360Screen extends StatelessWidget {
+  final String url;
+  const _Tour360Screen({required this.url});
 
   @override
   Widget build(BuildContext context) {
-    final profile =
-        listing.landlordProfile ?? LandlordProfile.fallback(listing.landlordId);
-    final avatarUrl = profile.avatarUrl;
-    final rating = profile.rating ?? listing.ratingValue;
-    final reviewCount = profile.reviewCount > 0
-        ? profile.reviewCount
-        : listing.resolvedReviewCount;
-
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 44,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD8D0C0),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                CircleAvatar(
-                  radius: 38,
-                  backgroundColor: AppColors.primaryBeig,
-                  backgroundImage:
-                      avatarUrl == null ? null : NetworkImage(avatarUrl),
-                  child: avatarUrl == null
-                      ? const Icon(
-                          Icons.person_rounded,
-                          color: Colors.black54,
-                          size: 34,
-                        )
-                      : null,
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        profile.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF120A00),
-                          fontSize: 24,
-                          fontFamily: 'Manrope',
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.star_rounded,
-                            color: Color(0xFFF5A623),
-                            size: 18,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            rating > 0
-                                ? '${rating.toStringAsFixed(1)} host rating'
-                                : 'New host',
-                            style: const TextStyle(
-                              color: Color(0xFF4C463C),
-                              fontSize: 13,
-                              fontFamily: 'Manrope',
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _HostChip(
-                  icon: Icons.home_work_outlined,
-                  label: listing.propertyTypeDisplay,
-                ),
-                _HostChip(
-                  icon: Icons.reviews_outlined,
-                  label: '$reviewCount reviews',
-                ),
-                if (profile.location?.isNotEmpty == true)
-                  _HostChip(
-                    icon: Icons.location_on_outlined,
-                    label: profile.location!,
-                  ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'About Host',
-              style: TextStyle(
-                color: Color(0xFF120A00),
-                fontSize: 16,
-                fontFamily: 'Manrope',
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              profile.about?.isNotEmpty == true
-                  ? profile.about!
-                  : 'This host has not added a public bio yet.',
-              style: const TextStyle(
-                color: Color(0xFF4C463C),
-                fontSize: 14,
-                fontFamily: 'Manrope',
-                fontWeight: FontWeight.w400,
-                height: 1.6,
-              ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1A1A1A),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Text(
-                  'Close profile',
-                  style: TextStyle(
-                    fontFamily: 'Manrope',
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          ],
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: const Text(
+          '360° Tour',
+          style: TextStyle(
+              fontFamily: 'Manrope', fontWeight: FontWeight.w700),
         ),
+        elevation: 0,
       ),
-    );
-  }
-}
-
-class _HostChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _HostChip({
-    required this.icon,
-    required this.label,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.primaryBeig,
-        borderRadius: BorderRadius.circular(100),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: const Color(0xFF120A00), size: 15),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Color(0xFF120A00),
-              fontSize: 12,
-              fontFamily: 'Manrope',
-              fontWeight: FontWeight.w700,
-            ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.vrpano_outlined,
+                  color: Colors.white54, size: 80),
+              const SizedBox(height: 24),
+              const Text(
+                '360° Tour Available',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'Manrope',
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                url,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    color: Colors.white54,
+                    fontSize: 12,
+                    fontFamily: 'Manrope'),
+              ),
+              const SizedBox(height: 32),
+              const Text(
+                'Open this link in your browser to view the full 360° experience.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                    height: 1.6,
+                    fontFamily: 'Manrope'),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
