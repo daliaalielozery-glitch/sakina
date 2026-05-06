@@ -62,7 +62,7 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
     return Scaffold(
       backgroundColor: AppColors.primaryColor,
       extendBodyBehindAppBar: true,
-      appBar: const ListingAppbar(),
+      appBar: ListingAppbar(listingId: listing.listingId),
       body: Stack(
         children: [
           SingleChildScrollView(
