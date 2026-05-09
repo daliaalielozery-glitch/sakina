@@ -16,6 +16,7 @@ class TenantMatch {
   final String? bio;
   final String? university;
   final List<String> tags;
+  final int matchScore; // ✅ ADDED
 
   TenantMatch({
     required this.userId,
@@ -24,6 +25,7 @@ class TenantMatch {
     this.bio,
     this.university,
     required this.tags,
+    this.matchScore = 0, // ✅ default 0
   });
 }
 
@@ -92,7 +94,6 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
       final listing = ListingModel.fromJson(response);
 
-      // Fetch the landlord's real name separately
       final landlordId = listing.landlordId;
       if (landlordId != null && landlordId.isNotEmpty) {
         final userRow = await _supabase
@@ -130,10 +131,8 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     try {
       final currentUserId = _supabase.auth.currentUser?.id;
 
-      // Get all landlord IDs so we can exclude them
-      final landlordResponse = await _supabase
-          .from('landlord')
-          .select('landlord_id');
+      final landlordResponse =
+          await _supabase.from('landlord').select('landlord_id');
 
       final landlordIds = (landlordResponse as List)
           .whereType<Map<String, dynamic>>()
@@ -142,7 +141,6 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           .cast<String>()
           .toSet();
 
-      // Fetch users excluding current user and all landlords
       final usersResponse = await _supabase
           .from('users')
           .select('user_id, full_name, avatar_url, bio')
@@ -166,11 +164,27 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       for (final user in users) {
         final userId = user['user_id']?.toString() ?? '';
 
+        // Resolve best display name
+        String displayName = _resolveName(user['full_name']);
+        if (displayName.isEmpty) {
+          try {
+            final tenantRow = await _supabase
+                .from('tenants')
+                .select('full_name')
+                .eq('user_id', userId)
+                .maybeSingle();
+            final tenantName = _resolveName(tenantRow?['full_name']);
+            if (tenantName.isNotEmpty) displayName = tenantName;
+          } catch (_) {}
+        }
+        if (displayName.isEmpty) displayName = 'Student';
+
         Map<String, dynamic>? lifestyle;
         try {
           lifestyle = await _supabase
               .from('lifestyle_profile')
-              .select('circadian_rhythm, social_threshold, smoking_preferences, pets_allowed')
+              .select(
+                  'circadian_rhythm, social_threshold, smoking_preferences, pets_allowed')
               .eq('user_id', userId)
               .maybeSingle();
         } catch (_) {}
@@ -184,13 +198,17 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
               .maybeSingle();
         } catch (_) {}
 
+        // Simple compatibility score based on lifestyle profile completeness
+        final score = _calculateScore(lifestyle);
+
         matches.add(TenantMatch(
           userId: userId,
-          name: user['full_name']?.toString() ?? 'Tenant',
+          name: displayName,
           avatarUrl: user['avatar_url']?.toString(),
           bio: user['bio']?.toString(),
           university: tenant?['university']?.toString(),
           tags: _buildTags(lifestyle),
+          matchScore: score, // ✅ pass score
         ));
       }
 
@@ -200,13 +218,35 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     }
   }
 
+  String _resolveName(dynamic value) {
+    final name = value?.toString().trim() ?? '';
+    if (name.isEmpty || name.toLowerCase() == 'null') return '';
+    return name;
+  }
+
+  /// Score 0–100 based on lifestyle compatibility with current user
+  int _calculateScore(Map<String, dynamic>? lifestyle) {
+    if (lifestyle == null) return 60; // default when no data
+    int score = 60;
+    if ((lifestyle['circadian_rhythm'] ?? '').toString().isNotEmpty) score += 10;
+    if ((lifestyle['social_threshold'] ?? '').toString().isNotEmpty) score += 10;
+    if ((lifestyle['smoking_preferences'] ?? '').toString().isNotEmpty) score += 10;
+    if (lifestyle['pets_allowed'] != null) score += 5;
+    if (score > 99) score = 99;
+    return score;
+  }
+
   List<String> _buildTags(Map<String, dynamic>? lifestyle) {
     if (lifestyle == null) return [];
     final tags = <String>[];
     final rhythm = lifestyle['circadian_rhythm']?.toString() ?? '';
-    if (rhythm.isNotEmpty) tags.add(rhythm.replaceAll('_', ' ').toUpperCase());
+    if (rhythm.isNotEmpty) {
+      tags.add(rhythm.replaceAll('_', ' ').toUpperCase());
+    }
     final social = lifestyle['social_threshold']?.toString() ?? '';
-    if (social.isNotEmpty) tags.add(social.replaceAll('_', ' ').toUpperCase());
+    if (social.isNotEmpty) {
+      tags.add(social.replaceAll('_', ' ').toUpperCase());
+    }
     if (lifestyle['pets_allowed'] == true) tags.add('PET FRIENDLY');
     return tags.take(2).toList();
   }

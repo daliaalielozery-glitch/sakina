@@ -8,7 +8,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'host_profile_screen.dart';
 import '../utils/universities.dart';
-import 'dashboard_screen.dart';
 
 // ==================== LOCAL APP COLORS ====================
 class AppColors {
@@ -846,10 +845,12 @@ class _GridPainter extends CustomPainter {
     final paint = Paint()
       ..color = AppColors.border.withValues(alpha: 0.6)
       ..strokeWidth = 0.5;
-    for (double x = 0; x < size.width; x += 46)
+    for (double x = 0; x < size.width; x += 46) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    for (double y = 0; y < size.height; y += 26)
+    }
+    for (double y = 0; y < size.height; y += 26) {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
   }
 
   @override

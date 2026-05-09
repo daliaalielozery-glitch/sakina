@@ -31,7 +31,7 @@ class _LandlordSidebarState extends State<LandlordSidebar> {
   String _email = '';
   String? _avatarUrl;
   bool _isLoading = true;
-  bool _notificationsEnabled = true;
+  final bool _notificationsEnabled = true;
 
   @override
   void initState() {

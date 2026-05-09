@@ -31,11 +31,13 @@ class _FoodContentState extends State<FoodContent> {
   Future<void> _load() async {
     try {
       final services = await _repo.getServicesByCategory('food');
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         _services = services;
         _filtered = services;
         _loading = false;
       });
+      }
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }

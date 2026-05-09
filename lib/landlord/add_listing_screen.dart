@@ -247,9 +247,10 @@ class _AddListingScreenState extends State<AddListingScreen> {
         Navigator.pop(context);
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     } finally {
       setState(() => _isLoading = false);
     }
@@ -361,10 +362,11 @@ class _AddListingScreenState extends State<AddListingScreen> {
                       child: GestureDetector(
                         onTap: () {
                           setState(() {
-                            if (kIsWeb)
+                            if (kIsWeb) {
                               _webImages.removeAt(index);
-                            else
+                            } else {
                               _photos.removeAt(index);
+                            }
                           });
                         },
                         child: Container(
@@ -707,8 +709,7 @@ class _InputField extends StatelessWidget {
   const _InputField(
       {required this.label,
       required this.hint,
-      this.keyboardType = TextInputType.text,
-      this.controller});
+      this.keyboardType = TextInputType.text}) : controller = null;
   @override
   Widget build(BuildContext context) {
     return Column(

@@ -3,7 +3,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'add_listing_screen.dart';
 import 'listing_details_screen.dart';
 import 'host_profile_screen.dart';
-import 'package:sakina/landlord/landlord_sidebar.dart';
 import 'package:sakina/features/notifications/notifications_screen.dart';
 import 'package:sakina/pages/messages/chat_screen/messages.dart';
 

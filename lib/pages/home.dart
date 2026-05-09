@@ -7,87 +7,35 @@ import 'package:sakina/features/ai_match/screens/loading_screen.dart';
 import 'package:sakina/features/home/bloc/home_bloc.dart';
 import 'package:sakina/features/listings/listings_details/listings_details.dart';
 import 'package:sakina/features/listings/models/listing_model.dart';
-import 'package:sakina/pages/explore.dart';
-import 'package:sakina/pages/favourite.dart';
-import 'package:sakina/pages/messages/chat_screen/messages.dart';
 import 'package:sakina/pages/widgets/services_near_you.dart';
 import 'package:sakina/pages/widgets/top_match.dart';
 import 'package:sakina/features/map/screens/map_screen.dart';
 
-class HomePage extends StatefulWidget {
+// ── HomePage: used when navigating directly (e.g. from login) ────────────────
+class HomePage extends StatelessWidget {
   const HomePage({super.key});
-
-  @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
-  int activeindex = 0;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: activeindex == 0 ? const Myappbar() : null,
+      appBar: const Myappbar(),
       backgroundColor: AppColors.primaryColor,
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.only(top: 16),
-        decoration: BoxDecoration(
-          color: AppColors.bottomNavigationBarColor,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(40),
-            topRight: Radius.circular(40),
-          ),
-        ),
-        clipBehavior: Clip.hardEdge,
-        child: BottomNavigationBar(
-          backgroundColor: AppColors.bottomNavigationBarColor,
-          elevation: 0,
-          unselectedItemColor: Colors.white,
-          currentIndex: activeindex,
-          onTap: (index) => setState(() => activeindex = index),
-          selectedItemColor: AppColors.themeColor,
-          type: BottomNavigationBarType.fixed,
-          items: [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home, color: activeindex == 0 ? AppColors.themeColor : Colors.white),
-              label: "Home",
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.explore, color: activeindex == 1 ? AppColors.themeColor : Colors.white),
-              label: "Explore",
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.favorite, color: activeindex == 2 ? AppColors.themeColor : Colors.white),
-              label: "Favourites",
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.message, color: activeindex == 3 ? AppColors.themeColor : Colors.white),
-              label: "Messages",
-            ),
-          ],
+      body: SafeArea(
+        child: BlocProvider(
+          create: (context) => HomeBloc()..add(LoadHomeData()),
+          child: const HomeContent(),
         ),
       ),
-      body: SafeArea(child: _buildScreen()),
     );
   }
+}
 
-  Widget _buildScreen() {
-    switch (activeindex) {
-      case 0:
-        return BlocProvider(
-          create: (context) => HomeBloc()..add(LoadHomeData()),
-          child: const _HomeContent(),
-        );
-      case 1:
-        return const ExplorePage();
-      case 2:
-        return const FavouritePage();
-      case 3:
-        return const ConversationsScreen();
-      default:
-        return const _HomeContent();
-    }
-  }
+// ── HomeContent: scrollable content used by ButtomNavBarScreen ───────────────
+class HomeContent extends StatefulWidget {
+  const HomeContent({super.key});
+
+  @override
+  State<HomeContent> createState() => _HomeContentState();
 }
 
 const List<Map<String, dynamic>> _searchSuggestions = [
@@ -112,14 +60,7 @@ const List<Map<String, dynamic>> _searchSuggestions = [
   {'label': 'Room', 'subtitle': 'Property type', 'icon': Icons.bed_outlined},
 ];
 
-class _HomeContent extends StatefulWidget {
-  const _HomeContent();
-
-  @override
-  State<_HomeContent> createState() => _HomeContentState();
-}
-
-class _HomeContentState extends State<_HomeContent> {
+class _HomeContentState extends State<HomeContent> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
   String _query = '';
@@ -129,7 +70,8 @@ class _HomeContentState extends State<_HomeContent> {
   void initState() {
     super.initState();
     _searchFocus.addListener(() {
-      setState(() => _showSuggestions = _searchFocus.hasFocus && _query.isEmpty);
+      setState(() =>
+          _showSuggestions = _searchFocus.hasFocus && _query.isEmpty);
     });
   }
 
@@ -143,23 +85,30 @@ class _HomeContentState extends State<_HomeContent> {
   List<Map<String, dynamic>> get _filtered {
     if (_query.isEmpty) return _searchSuggestions.take(6).toList();
     return _searchSuggestions
-        .where((s) => s['label'].toLowerCase().contains(_query.toLowerCase()))
+        .where((s) =>
+            s['label'].toLowerCase().contains(_query.toLowerCase()))
         .toList();
   }
 
   void _onSuggestionTap(String label) {
     _searchController.clear();
-    setState(() { _query = ''; _showSuggestions = false; });
+    setState(() {
+      _query = '';
+      _showSuggestions = false;
+    });
     _searchFocus.unfocus();
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const MapSearchScreen()));
+    Navigator.push(
+        context, MaterialPageRoute(builder: (_) => const MapSearchScreen()));
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<HomeBloc, HomeState>(
       builder: (context, state) {
-        final listing = state is HomeLoaded ? state.nearbyListing : null;
-        final matches = state is HomeLoaded ? state.topMatches : <TenantMatch>[];
+        final listing =
+            state is HomeLoaded ? state.nearbyListing : null;
+        final matches =
+            state is HomeLoaded ? state.topMatches : <TenantMatch>[];
 
         return SingleChildScrollView(
           child: Container(
@@ -182,7 +131,11 @@ class _HomeContentState extends State<_HomeContent> {
                 const SizedBox(height: 16),
                 const Text(
                   "Curated roommate matches and premium living spaces across Egypt's academic districts.",
-                  style: TextStyle(color: Color(0xFF4C463C), fontSize: 16, fontFamily: 'Manrope', fontWeight: FontWeight.w400),
+                  style: TextStyle(
+                      color: Color(0xFF4C463C),
+                      fontSize: 16,
+                      fontFamily: 'Manrope',
+                      fontWeight: FontWeight.w400),
                 ),
                 const SizedBox(height: 24),
 
@@ -200,18 +153,25 @@ class _HomeContentState extends State<_HomeContent> {
                               controller: _searchController,
                               focusNode: _searchFocus,
                               onChanged: (value) {
-                                setState(() { _query = value; _showSuggestions = true; });
+                                setState(() {
+                                  _query = value;
+                                  _showSuggestions = true;
+                                });
                               },
                               onSubmitted: (value) {
                                 if (value.isNotEmpty) _onSuggestionTap(value);
                               },
                               decoration: InputDecoration(
                                 hintText: 'Search by area or university...',
-                                hintStyle: const TextStyle(color: Colors.grey, fontFamily: 'Manrope', fontSize: 14),
+                                hintStyle: const TextStyle(
+                                    color: Colors.grey,
+                                    fontFamily: 'Manrope',
+                                    fontSize: 14),
                                 prefixIcon: const Icon(Icons.search),
                                 filled: true,
                                 fillColor: Colors.white,
-                                contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    vertical: 14, horizontal: 16),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
                                   borderSide: BorderSide.none,
@@ -221,7 +181,10 @@ class _HomeContentState extends State<_HomeContent> {
                                         icon: const Icon(Icons.close, size: 18),
                                         onPressed: () {
                                           _searchController.clear();
-                                          setState(() { _query = ''; _showSuggestions = false; });
+                                          setState(() {
+                                            _query = '';
+                                            _showSuggestions = false;
+                                          });
                                         },
                                       )
                                     : null,
@@ -234,14 +197,20 @@ class _HomeContentState extends State<_HomeContent> {
                           padding: const EdgeInsets.all(20),
                           style: IconButton.styleFrom(
                             iconSize: 20,
-                            backgroundColor: AppColors.bottomNavigationBarColor,
+                            backgroundColor:
+                                AppColors.bottomNavigationBarColor,
                             foregroundColor: AppColors.appbarColor,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
                           ),
                           onPressed: () {
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => const MapSearchScreen()));
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const MapSearchScreen()));
                           },
-                          icon: SvgPicture.asset("assets/icons/filtericon.svg"),
+                          icon: SvgPicture.asset(
+                              "assets/icons/filtericon.svg"),
                         ),
                       ],
                     ),
@@ -252,17 +221,26 @@ class _HomeContentState extends State<_HomeContent> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
-                          boxShadow: const [BoxShadow(color: Color.fromRGBO(0, 0, 0, 0.10), blurRadius: 12, offset: Offset(0, 4))],
+                          boxShadow: const [
+                            BoxShadow(
+                                color: Color.fromRGBO(0, 0, 0, 0.10),
+                                blurRadius: 12,
+                                offset: Offset(0, 4))
+                          ],
                         ),
                         child: _filtered.isEmpty
                             ? Padding(
                                 padding: const EdgeInsets.all(16),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.search_off, color: Colors.grey, size: 20),
+                                    const Icon(Icons.search_off,
+                                        color: Colors.grey, size: 20),
                                     const SizedBox(width: 10),
                                     Text('No results for "$_query"',
-                                        style: const TextStyle(fontFamily: 'Manrope', color: Colors.grey, fontSize: 14)),
+                                        style: const TextStyle(
+                                            fontFamily: 'Manrope',
+                                            color: Colors.grey,
+                                            fontSize: 14)),
                                   ],
                                 ),
                               )
@@ -270,42 +248,76 @@ class _HomeContentState extends State<_HomeContent> {
                                 children: [
                                   if (_query.isEmpty)
                                     const Padding(
-                                      padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
+                                      padding:
+                                          EdgeInsets.fromLTRB(16, 12, 16, 4),
                                       child: Align(
                                         alignment: Alignment.centerLeft,
                                         child: Text('POPULAR SEARCHES',
-                                            style: TextStyle(fontFamily: 'Manrope', fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 1.2, color: Colors.grey)),
+                                            style: TextStyle(
+                                                fontFamily: 'Manrope',
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w600,
+                                                letterSpacing: 1.2,
+                                                color: Colors.grey)),
                                       ),
                                     ),
                                   ..._filtered.asMap().entries.map((entry) {
                                     final i = entry.key;
                                     final s = entry.value;
                                     return InkWell(
-                                      onTap: () => _onSuggestionTap(s['label']),
+                                      onTap: () =>
+                                          _onSuggestionTap(s['label']),
                                       borderRadius: BorderRadius.vertical(
-                                        top: i == 0 ? const Radius.circular(12) : Radius.zero,
-                                        bottom: i == _filtered.length - 1 ? const Radius.circular(12) : Radius.zero,
+                                        top: i == 0
+                                            ? const Radius.circular(12)
+                                            : Radius.zero,
+                                        bottom: i == _filtered.length - 1
+                                            ? const Radius.circular(12)
+                                            : Radius.zero,
                                       ),
                                       child: Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 16, vertical: 10),
                                         child: Row(
                                           children: [
                                             Container(
-                                              width: 36, height: 36,
-                                              decoration: BoxDecoration(color: const Color(0xFFF5EFE6), borderRadius: BorderRadius.circular(8)),
-                                              child: Icon(s['icon'] as IconData, size: 18, color: const Color(0xFF4C463C)),
+                                              width: 36,
+                                              height: 36,
+                                              decoration: BoxDecoration(
+                                                  color:
+                                                      const Color(0xFFF5EFE6),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8)),
+                                              child: Icon(
+                                                  s['icon'] as IconData,
+                                                  size: 18,
+                                                  color:
+                                                      const Color(0xFF4C463C)),
                                             ),
                                             const SizedBox(width: 12),
                                             Expanded(
                                               child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
                                                 children: [
-                                                  Text(s['label'], style: const TextStyle(fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF120A00))),
-                                                  Text(s['subtitle'], style: const TextStyle(fontFamily: 'Manrope', fontSize: 12, color: Colors.grey)),
+                                                  Text(s['label'],
+                                                      style: const TextStyle(
+                                                          fontFamily: 'Manrope',
+                                                          fontSize: 14,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          color: Color(
+                                                              0xFF120A00))),
+                                                  Text(s['subtitle'],
+                                                      style: const TextStyle(
+                                                          fontFamily: 'Manrope',
+                                                          fontSize: 12,
+                                                          color: Colors.grey)),
                                                 ],
                                               ),
                                             ),
-                                            const Icon(Icons.north_west, size: 14, color: Colors.grey),
+                                            const Icon(Icons.north_west,
+                                                size: 14, color: Colors.grey),
                                           ],
                                         ),
                                       ),
@@ -320,11 +332,14 @@ class _HomeContentState extends State<_HomeContent> {
                 // ─── AI Smart Match Card ──────────────────────────────
                 const SizedBox(height: 24),
                 Container(
-                  decoration: BoxDecoration(color: AppColors.primaryBeig, borderRadius: BorderRadius.circular(20)),
+                  decoration: BoxDecoration(
+                      color: AppColors.primaryBeig,
+                      borderRadius: BorderRadius.circular(20)),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Image.asset('assets/pictures/AI_Cute.png', width: 100, height: 100, fit: BoxFit.cover),
+                      Image.asset('assets/pictures/AI_Cute.png',
+                          width: 100, height: 100, fit: BoxFit.cover),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -333,31 +348,60 @@ class _HomeContentState extends State<_HomeContent> {
                             const Padding(
                               padding: EdgeInsets.only(top: 16.0),
                               child: Text('AI Smart Match',
-                                  style: TextStyle(fontSize: 18, fontFamily: 'Manrope', color: Color(0xFF4D4634), fontWeight: FontWeight.w500)),
+                                  style: TextStyle(
+                                      fontSize: 18,
+                                      fontFamily: 'Manrope',
+                                      color: Color(0xFF4D4634),
+                                      fontWeight: FontWeight.w500)),
                             ),
                             const Text('Let AI find your perfect room.',
-                                style: TextStyle(fontSize: 20, fontFamily: 'Manrope', fontWeight: FontWeight.w400, color: Color(0xFF120A00), height: 1.80, letterSpacing: -1.60)),
+                                style: TextStyle(
+                                    fontSize: 20,
+                                    fontFamily: 'Manrope',
+                                    fontWeight: FontWeight.w400,
+                                    color: Color(0xFF120A00),
+                                    height: 1.80,
+                                    letterSpacing: -1.60)),
                             const Padding(
                               padding: EdgeInsets.all(2.0),
-                              child: Text('Personalized matches tailored to your lifestyle and budget.',
-                                  style: TextStyle(color: Color(0xFF4C463C), fontSize: 16, fontFamily: 'Manrope', fontWeight: FontWeight.w400)),
+                              child: Text(
+                                  'Personalized matches tailored to your lifestyle and budget.',
+                                  style: TextStyle(
+                                      color: Color(0xFF4C463C),
+                                      fontSize: 16,
+                                      fontFamily: 'Manrope',
+                                      fontWeight: FontWeight.w400)),
                             ),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8.0, vertical: 12.0),
                               child: SizedBox(
-                                width: 170, height: 35,
+                                width: 170,
+                                height: 35,
                                 child: ElevatedButton(
                                   onPressed: () {
-                                    Navigator.push(context, MaterialPageRoute(builder: (context) => const LoadingScreen()));
+                                    Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                const LoadingScreen()));
                                   },
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.bottomNavigationBarColor,
+                                    backgroundColor:
+                                        AppColors.bottomNavigationBarColor,
                                     foregroundColor: AppColors.primaryBeig,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(30)),
                                     elevation: 0,
                                   ),
                                   child: const Text('Find my match',
-                                      style: TextStyle(fontSize: 14, fontFamily: 'Manrope', fontWeight: FontWeight.w700, height: 1.71, letterSpacing: 0.40)),
+                                      style: TextStyle(
+                                          fontSize: 14,
+                                          fontFamily: 'Manrope',
+                                          fontWeight: FontWeight.w700,
+                                          height: 1.71,
+                                          letterSpacing: 0.40)),
                                 ),
                               ),
                             ),
@@ -381,17 +425,33 @@ class _HomeContentState extends State<_HomeContent> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text('Browse Nearby',
-                              style: TextStyle(color: Color(0xFF120A00), fontSize: 24, fontFamily: 'Manrope', fontWeight: FontWeight.w400, height: 1.33, letterSpacing: -0.60)),
+                              style: TextStyle(
+                                  color: Color(0xFF120A00),
+                                  fontSize: 24,
+                                  fontFamily: 'Manrope',
+                                  fontWeight: FontWeight.w400,
+                                  height: 1.33,
+                                  letterSpacing: -0.60)),
                           GestureDetector(
-                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MapSearchScreen())),
+                            onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const MapSearchScreen())),
                             child: const Text('VIEW MAP',
-                                style: TextStyle(color: Color(0xFF4C463C), fontSize: 12, fontFamily: 'Manrope', fontWeight: FontWeight.w400, height: 1.33, letterSpacing: 1.20)),
+                                style: TextStyle(
+                                    color: Color(0xFF4C463C),
+                                    fontSize: 12,
+                                    fontFamily: 'Manrope',
+                                    fontWeight: FontWeight.w400,
+                                    height: 1.33,
+                                    letterSpacing: 1.20)),
                           ),
                         ],
                       ),
                       const SizedBox(height: 14),
                       if (state is HomeLoading)
-                        const Center(child: Padding(
+                        const Center(
+                            child: Padding(
                           padding: EdgeInsets.symmetric(vertical: 60),
                           child: CircularProgressIndicator(),
                         ))
@@ -404,12 +464,15 @@ class _HomeContentState extends State<_HomeContent> {
                 ),
 
                 // ─── Top Match ─────────────────────────────────────────
-                if (state is! HomeLoading)
+                if (state is! HomeLoading) ...[
                   TopMatch(matches: matches),
-                const SizedBox(height: 24),
+                  const SizedBox(height: 24),
+                ],
 
                 // ─── Services Near You ─────────────────────────────────
                 ServicesNearYouContainer(),
+
+                const SizedBox(height: 80),
               ],
             ),
           ),
@@ -426,7 +489,9 @@ class _BrowseNearbyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = listing.galleryImages.isNotEmpty ? listing.galleryImages.first : null;
+    final imageUrl = listing.galleryImages.isNotEmpty
+        ? listing.galleryImages.first
+        : null;
     final location = listing.address?.isNotEmpty == true
         ? listing.address!
         : listing.locationDisplay;
@@ -434,7 +499,8 @@ class _BrowseNearbyCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => RoomDetailScreen(listing: listing)),
+        MaterialPageRoute(
+            builder: (_) => RoomDetailScreen(listing: listing)),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(15),
@@ -444,13 +510,16 @@ class _BrowseNearbyCard extends StatelessWidget {
             children: [
               Positioned.fill(
                 child: imageUrl != null
-                    ? Image.network(imageUrl, fit: BoxFit.cover,
+                    ? Image.network(imageUrl,
+                        fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Container(
                             color: const Color(0xFF8AACB8),
-                            child: const Icon(Icons.home, size: 60, color: Colors.white30)))
+                            child: const Icon(Icons.home,
+                                size: 60, color: Colors.white30)))
                     : Container(
                         color: const Color(0xFF8AACB8),
-                        child: const Icon(Icons.home, size: 60, color: Colors.white30)),
+                        child: const Icon(Icons.home,
+                            size: 60, color: Colors.white30)),
               ),
               Positioned.fill(
                 child: Container(
@@ -458,7 +527,10 @@ class _BrowseNearbyCard extends StatelessWidget {
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, Colors.black.withValues(alpha: 0.3)],
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.3)
+                      ],
                     ),
                   ),
                 ),
@@ -466,35 +538,52 @@ class _BrowseNearbyCard extends StatelessWidget {
               Align(
                 alignment: const Alignment(0, -0.5),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(color: const Color(0xFF1C1C1C), borderRadius: BorderRadius.circular(30)),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                      color: const Color(0xFF1C1C1C),
+                      borderRadius: BorderRadius.circular(30)),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.home_outlined, color: Colors.white, size: 16),
+                      const Icon(Icons.home_outlined,
+                          color: Colors.white, size: 16),
                       const SizedBox(width: 6),
                       Text(listing.propertyTypeDisplay,
-                          style: const TextStyle(color: Colors.white, fontSize: 12, fontFamily: 'Manrope', fontWeight: FontWeight.w400)),
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontFamily: 'Manrope',
+                              fontWeight: FontWeight.w400)),
                     ],
                   ),
                 ),
               ),
               Positioned(
-                bottom: 16, left: 16, right: 16,
+                bottom: 16,
+                left: 16,
+                right: 16,
                 child: Container(
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                  decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16)),
                   child: Row(
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(10),
                         child: Container(
-                          width: 60, height: 60,
+                          width: 60,
+                          height: 60,
                           color: const Color(0xFF8AACB8),
                           child: imageUrl != null
-                              ? Image.network(imageUrl, fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const Icon(Icons.home, color: Colors.white30))
-                              : const Icon(Icons.home, color: Colors.white30),
+                              ? Image.network(imageUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => const Icon(
+                                      Icons.home,
+                                      color: Colors.white30))
+                              : const Icon(Icons.home,
+                                  color: Colors.white30),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -503,20 +592,32 @@ class _BrowseNearbyCard extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              listing.title.isNotEmpty ? listing.title : 'Available Property',
-                              maxLines: 1, overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF1C1C1C)),
+                              listing.title.isNotEmpty
+                                  ? listing.title
+                                  : 'Available Property',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF1C1C1C)),
                             ),
                             const SizedBox(height: 4),
                             Row(
                               children: [
-                                const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF888888)),
+                                const Icon(Icons.location_on_outlined,
+                                    size: 14, color: Color(0xFF888888)),
                                 const SizedBox(width: 2),
                                 Expanded(
                                   child: Text(
-                                    location.isNotEmpty ? location : 'Cairo, Egypt',
-                                    maxLines: 1, overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontSize: 13, color: Color(0xFF888888)),
+                                    location.isNotEmpty
+                                        ? location
+                                        : 'Cairo, Egypt',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                        fontSize: 13,
+                                        color: Color(0xFF888888)),
                                   ),
                                 ),
                               ],
@@ -524,7 +625,8 @@ class _BrowseNearbyCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const Icon(Icons.chevron_right, color: Color(0xFF1C1C1C), size: 24),
+                      const Icon(Icons.chevron_right,
+                          color: Color(0xFF1C1C1C), size: 24),
                     ],
                   ),
                 ),
@@ -547,7 +649,8 @@ class _BrowseNearbyPlaceholder extends StatelessWidget {
         color: const Color(0xFF8AACB8),
         child: const Center(
           child: Text('No listings available',
-              style: TextStyle(color: Colors.white70, fontFamily: 'Manrope')),
+              style:
+                  TextStyle(color: Colors.white70, fontFamily: 'Manrope')),
         ),
       ),
     );

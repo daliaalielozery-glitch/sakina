@@ -65,9 +65,11 @@ class _AiRoommateMatchScreenState extends State<AiRoommateMatchScreen> {
       }
 
       final topMatch = roommateMatches.first as Map<String, dynamic>;
-      final matchUserId = topMatch['user_id'] as String?;
+      final tenant = topMatch['tenant'] as Map<String, dynamic>? ?? {};
+      final matchUserId = tenant['user_id']?.toString() ??
+          tenant['tenant_id']?.toString() ?? '';
 
-      if (matchUserId == null) {
+      if (matchUserId.isEmpty) {
         setState(() { _error = 'Invalid match data'; _isLoading = false; });
         return;
       }
@@ -91,20 +93,40 @@ class _AiRoommateMatchScreenState extends State<AiRoommateMatchScreen> {
       ]);
 
       final user = results[0] as Map<String, dynamic>?;
-      final tenant = results[1] as Map<String, dynamic>?;
+      final tenantRow = results[1] as Map<String, dynamic>?;
       final lifestyle = results[2] as Map<String, dynamic>?;
-      final scores = topMatch['scores'] as Map<String, dynamic>? ?? {};
+      final breakdown = topMatch['breakdown'] as Map<String, dynamic>? ?? {};
+
+      // Resolve name — use edge function data first, fallback to DB
+      String resolvedName = tenant['full_name']?.toString().trim() ?? '';
+      if (resolvedName.isEmpty || resolvedName == 'Unknown' || resolvedName == 'null') {
+        resolvedName = user?['full_name']?.toString().trim() ?? '';
+      }
+      if (resolvedName.isEmpty) resolvedName = 'Student';
+
+      // Resolve avatar
+      String resolvedAvatar = tenant['avatar_url']?.toString().trim() ?? '';
+      if (resolvedAvatar.isEmpty || resolvedAvatar == 'null') {
+        resolvedAvatar = user?['avatar_url']?.toString().trim() ?? '';
+      }
+
+      // Resolve university
+      String resolvedUniversity = tenant['university']?.toString().trim() ?? '';
+      if (resolvedUniversity.isEmpty || resolvedUniversity == 'null') {
+        resolvedUniversity = tenantRow?['university']?.toString().trim() ?? '';
+      }
+      if (resolvedUniversity.isEmpty) resolvedUniversity = 'University not set';
 
       if (mounted) {
         setState(() {
-          _matchName = user?['full_name'] ?? 'Unknown';
-          _matchAvatar = user?['avatar_url'] ?? '';
-          _matchUniversity = tenant?['university'] ?? 'University not set';
+          _matchName = resolvedName;
+          _matchAvatar = resolvedAvatar;
+          _matchUniversity = resolvedUniversity;
           _matchProfession = 'Student';
-          _matchScore = ((topMatch['score'] as num?) ?? 0).toDouble() * 100;
-          _cleanlinessScore = ((scores['cleanliness'] as num?) ?? 0).toDouble();
-          _socialScore = ((scores['social'] as num?) ?? 0).toDouble();
-          _sleepScore = ((scores['circadian'] as num?) ?? 0).toDouble();
+          _matchScore = ((topMatch['score'] as num?) ?? 0).toDouble();
+          _cleanlinessScore = ((breakdown['cleanliness'] as num?) ?? 0).toDouble() / 100;
+          _socialScore = ((breakdown['social'] as num?) ?? 0).toDouble() / 100;
+          _sleepScore = ((breakdown['circadian'] as num?) ?? 0).toDouble() / 100;
           _circadianRhythm = lifestyle?['circadian_rhythm'] ?? '';
           _smokingPreferences = lifestyle?['smoking_preferences'] ?? '';
           _socialThreshold = lifestyle?['social_threshold'] ?? '';
@@ -185,14 +207,11 @@ class _AiRoommateMatchScreenState extends State<AiRoommateMatchScreen> {
                     child: Column(
                       children: [
                         RoomateProfileCard(
-                          imageUrl: _matchAvatar.isNotEmpty
-                              ? _matchAvatar
-                              : 'https://thumbs.dreamstime.com/b/avatar-profile-icon-flat-style-female-user-vector-illustration-isolated-background-women-sign-business-concept-321407993.jpg',
+                          imageUrl: _matchAvatar.isNotEmpty ? _matchAvatar : '',
                           profession: _matchProfession,
                           userName: _matchName,
                           university: _matchUniversity,
-                          matchPercentage:
-                              '${_matchScore.toStringAsFixed(0)}%',
+                          matchPercentage: '${_matchScore.toStringAsFixed(0)}%',
                         ),
                         const SizedBox(height: 24),
 

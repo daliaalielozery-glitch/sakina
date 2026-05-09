@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:sakina/core/theme/app_colors.dart';
 import 'package:sakina/features/home/bloc/home_bloc.dart';
+import 'package:sakina/features/ai_match/screens/ai_match_screen.dart';
+import 'package:sakina/features/profiles/ui/roommate_request_screen.dart';
 
 class TopMatch extends StatelessWidget {
   final List<TenantMatch> matches;
@@ -19,8 +21,8 @@ class TopMatch extends StatelessWidget {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text(
+            children: [
+              const Text(
                 'Top Matches',
                 style: TextStyle(
                   color: Color(0xFF120A00),
@@ -31,15 +33,21 @@ class TopMatch extends StatelessWidget {
                   letterSpacing: -0.60,
                 ),
               ),
-              Text(
-                'SEE ALL',
-                style: TextStyle(
-                  color: Color(0xFF4C463C),
-                  fontSize: 12,
-                  fontFamily: 'Manrope',
-                  fontWeight: FontWeight.w400,
-                  height: 1.33,
-                  letterSpacing: 1.20,
+              GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AiMatchScreen()),
+                ),
+                child: const Text(
+                  'SEE ALL',
+                  style: TextStyle(
+                    color: Color(0xFF4C463C),
+                    fontSize: 12,
+                    fontFamily: 'Manrope',
+                    fontWeight: FontWeight.w400,
+                    height: 1.33,
+                    letterSpacing: 1.20,
+                  ),
                 ),
               ),
             ],
@@ -68,7 +76,7 @@ class _TopMatchCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -84,6 +92,22 @@ class _TopMatchCard extends StatelessWidget {
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF7A6F65),
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1C1C1C),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${match.matchScore}% MATCH',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFF7E0B6),
                     letterSpacing: 0.8,
                   ),
                 ),
@@ -154,19 +178,34 @@ class _TopMatchCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => RoommateRequestScreen(
+                    userId: match.userId,
+                    matchPercentage: '${match.matchScore}%',
+                  ),
+                ),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1C1C1C),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30)),
                 elevation: 0,
               ),
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text('View Profile',
-                      style: TextStyle(color: Colors.white, fontSize: 14, fontFamily: 'Manrope', fontWeight: FontWeight.w400, height: 1.43, letterSpacing: 0.35)),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontFamily: 'Manrope',
+                          fontWeight: FontWeight.w400,
+                          height: 1.43,
+                          letterSpacing: 0.35)),
                   SizedBox(width: 8),
                   Icon(Icons.arrow_forward, size: 16),
                 ],

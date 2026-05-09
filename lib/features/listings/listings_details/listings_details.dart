@@ -192,8 +192,9 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
 
     final listing = widget.listing;
     final landlordId = listing.landlordId;
-    if (landlordId == null || landlordId.isEmpty)
+    if (landlordId == null || landlordId.isEmpty) {
       throw Exception('Host not found');
+    }
 
     try {
       final existing = await supabase
