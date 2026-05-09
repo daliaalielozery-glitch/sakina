@@ -10,27 +10,102 @@ import 'package:sakina/features/listings/models/listing_model.dart';
 import 'package:sakina/pages/widgets/services_near_you.dart';
 import 'package:sakina/pages/widgets/top_match.dart';
 import 'package:sakina/features/map/screens/map_screen.dart';
+import 'package:sakina/pages/explore.dart';
+import 'package:sakina/pages/favourite.dart';
+import 'package:sakina/pages/messages/chat_screen/messages.dart';
 
-// ── HomePage: used when navigating directly (e.g. from login) ────────────────
-class HomePage extends StatelessWidget {
+// ── HomePage: now owns the bottom nav bar ─────────────────────────────────────
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  int _activeIndex = 0;
+
+  Widget _buildScreen(int index) {
+    switch (index) {
+      case 0:
+        return BlocProvider(
+          create: (_) => HomeBloc()..add(LoadHomeData()),
+          child: const HomeContent(),
+        );
+      case 1:
+        return const ExplorePage();
+      case 2:
+        return const FavouritePage();
+      case 3:
+        return const ConversationsScreen();
+      default:
+        return BlocProvider(
+          create: (_) => HomeBloc()..add(LoadHomeData()),
+          child: const HomeContent(),
+        );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const Myappbar(),
       backgroundColor: AppColors.primaryColor,
-      body: SafeArea(
-        child: BlocProvider(
-          create: (context) => HomeBloc()..add(LoadHomeData()),
-          child: const HomeContent(),
+      extendBody: true,
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: AppColors.bottomNavigationBarColor,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(40),
+            topRight: Radius.circular(40),
+          ),
         ),
+        clipBehavior: Clip.hardEdge,
+        child: SafeArea(
+          child: BottomNavigationBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            currentIndex: _activeIndex,
+            onTap: (index) => setState(() => _activeIndex = index),
+            selectedItemColor: AppColors.themeColor,
+            unselectedItemColor: Colors.white,
+            type: BottomNavigationBarType.fixed,
+            showSelectedLabels: true,
+            showUnselectedLabels: true,
+            items: [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home,
+                    color: _activeIndex == 0 ? AppColors.themeColor : Colors.white),
+                label: 'Home',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.explore,
+                    color: _activeIndex == 1 ? AppColors.themeColor : Colors.white),
+                label: 'Explore',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.favorite,
+                    color: _activeIndex == 2 ? AppColors.themeColor : Colors.white),
+                label: 'Favourites',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.message,
+                    color: _activeIndex == 3 ? AppColors.themeColor : Colors.white),
+                label: 'Messages',
+              ),
+            ],
+          ),
+        ),
+      ),
+      body: SafeArea(
+        bottom: false,
+        child: _buildScreen(_activeIndex),
       ),
     );
   }
 }
 
-// ── HomeContent: scrollable content used by ButtomNavBarScreen ───────────────
+// ── HomeContent: the scrollable home tab body ─────────────────────────────────
 class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
 
@@ -105,10 +180,8 @@ class _HomeContentState extends State<HomeContent> {
   Widget build(BuildContext context) {
     return BlocBuilder<HomeBloc, HomeState>(
       builder: (context, state) {
-        final listing =
-            state is HomeLoaded ? state.nearbyListing : null;
-        final matches =
-            state is HomeLoaded ? state.topMatches : <TenantMatch>[];
+        final listing = state is HomeLoaded ? state.nearbyListing : null;
+        final matches = state is HomeLoaded ? state.topMatches : <TenantMatch>[];
 
         return SingleChildScrollView(
           child: Container(
@@ -197,8 +270,7 @@ class _HomeContentState extends State<HomeContent> {
                           padding: const EdgeInsets.all(20),
                           style: IconButton.styleFrom(
                             iconSize: 20,
-                            backgroundColor:
-                                AppColors.bottomNavigationBarColor,
+                            backgroundColor: AppColors.bottomNavigationBarColor,
                             foregroundColor: AppColors.appbarColor,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8)),
@@ -209,8 +281,7 @@ class _HomeContentState extends State<HomeContent> {
                                 MaterialPageRoute(
                                     builder: (_) => const MapSearchScreen()));
                           },
-                          icon: SvgPicture.asset(
-                              "assets/icons/filtericon.svg"),
+                          icon: SvgPicture.asset("assets/icons/filtericon.svg"),
                         ),
                       ],
                     ),
@@ -248,8 +319,7 @@ class _HomeContentState extends State<HomeContent> {
                                 children: [
                                   if (_query.isEmpty)
                                     const Padding(
-                                      padding:
-                                          EdgeInsets.fromLTRB(16, 12, 16, 4),
+                                      padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
                                       child: Align(
                                         alignment: Alignment.centerLeft,
                                         child: Text('POPULAR SEARCHES',
@@ -265,8 +335,7 @@ class _HomeContentState extends State<HomeContent> {
                                     final i = entry.key;
                                     final s = entry.value;
                                     return InkWell(
-                                      onTap: () =>
-                                          _onSuggestionTap(s['label']),
+                                      onTap: () => _onSuggestionTap(s['label']),
                                       borderRadius: BorderRadius.vertical(
                                         top: i == 0
                                             ? const Radius.circular(12)
@@ -284,15 +353,12 @@ class _HomeContentState extends State<HomeContent> {
                                               width: 36,
                                               height: 36,
                                               decoration: BoxDecoration(
-                                                  color:
-                                                      const Color(0xFFF5EFE6),
+                                                  color: const Color(0xFFF5EFE6),
                                                   borderRadius:
                                                       BorderRadius.circular(8)),
-                                              child: Icon(
-                                                  s['icon'] as IconData,
+                                              child: Icon(s['icon'] as IconData,
                                                   size: 18,
-                                                  color:
-                                                      const Color(0xFF4C463C)),
+                                                  color: const Color(0xFF4C463C)),
                                             ),
                                             const SizedBox(width: 12),
                                             Expanded(
@@ -304,10 +370,8 @@ class _HomeContentState extends State<HomeContent> {
                                                       style: const TextStyle(
                                                           fontFamily: 'Manrope',
                                                           fontSize: 14,
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                          color: Color(
-                                                              0xFF120A00))),
+                                                          fontWeight: FontWeight.w600,
+                                                          color: Color(0xFF120A00))),
                                                   Text(s['subtitle'],
                                                       style: const TextStyle(
                                                           fontFamily: 'Manrope',
@@ -391,8 +455,7 @@ class _HomeContentState extends State<HomeContent> {
                                         AppColors.bottomNavigationBarColor,
                                     foregroundColor: AppColors.primaryBeig,
                                     shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(30)),
+                                        borderRadius: BorderRadius.circular(30)),
                                     elevation: 0,
                                   ),
                                   child: const Text('Find my match',
@@ -499,8 +562,7 @@ class _BrowseNearbyCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(
-            builder: (_) => RoomDetailScreen(listing: listing)),
+        MaterialPageRoute(builder: (_) => RoomDetailScreen(listing: listing)),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(15),
@@ -538,16 +600,14 @@ class _BrowseNearbyCard extends StatelessWidget {
               Align(
                 alignment: const Alignment(0, -0.5),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   decoration: BoxDecoration(
                       color: const Color(0xFF1C1C1C),
                       borderRadius: BorderRadius.circular(30)),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.home_outlined,
-                          color: Colors.white, size: 16),
+                      const Icon(Icons.home_outlined, color: Colors.white, size: 16),
                       const SizedBox(width: 6),
                       Text(listing.propertyTypeDisplay,
                           style: const TextStyle(
@@ -579,11 +639,9 @@ class _BrowseNearbyCard extends StatelessWidget {
                           child: imageUrl != null
                               ? Image.network(imageUrl,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const Icon(
-                                      Icons.home,
-                                      color: Colors.white30))
-                              : const Icon(Icons.home,
-                                  color: Colors.white30),
+                                  errorBuilder: (_, __, ___) =>
+                                      const Icon(Icons.home, color: Colors.white30))
+                              : const Icon(Icons.home, color: Colors.white30),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -610,14 +668,11 @@ class _BrowseNearbyCard extends StatelessWidget {
                                 const SizedBox(width: 2),
                                 Expanded(
                                   child: Text(
-                                    location.isNotEmpty
-                                        ? location
-                                        : 'Cairo, Egypt',
+                                    location.isNotEmpty ? location : 'Cairo, Egypt',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
-                                        fontSize: 13,
-                                        color: Color(0xFF888888)),
+                                        fontSize: 13, color: Color(0xFF888888)),
                                   ),
                                 ),
                               ],
@@ -649,8 +704,7 @@ class _BrowseNearbyPlaceholder extends StatelessWidget {
         color: const Color(0xFF8AACB8),
         child: const Center(
           child: Text('No listings available',
-              style:
-                  TextStyle(color: Colors.white70, fontFamily: 'Manrope')),
+              style: TextStyle(color: Colors.white70, fontFamily: 'Manrope')),
         ),
       ),
     );

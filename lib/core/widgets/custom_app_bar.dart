@@ -28,11 +28,27 @@ class Myappbar extends StatefulWidget implements PreferredSizeWidget {
 
 class _MyappbarState extends State<Myappbar> {
   int _unreadCount = 0;
+  String _avatarUrl = '';
 
   @override
   void initState() {
     super.initState();
     _fetchUnreadCount();
+    _fetchAvatar();
+  }
+
+  Future<void> _fetchAvatar() async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
+      final row = await Supabase.instance.client
+          .from('users')
+          .select('avatar_url')
+          .eq('user_id', userId)
+          .maybeSingle();
+      final url = row?['avatar_url']?.toString() ?? '';
+      if (mounted) setState(() => _avatarUrl = url);
+    } catch (_) {}
   }
 
   Future<void> _fetchUnreadCount() async {
@@ -86,29 +102,42 @@ class _MyappbarState extends State<Myappbar> {
                   ),
                 if (widget.showProfile)
                   GestureDetector(
-                    onTap: () {
-                      Navigator.push(
+                    onTap: () async {
+                      await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => const UserProfileScreen(),
                         ),
                       );
+                      _fetchAvatar();
                     },
                     child: Row(
                       children: [
                         Container(
-                        width: 48.r,
-                        height: 48.r,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: const Color(0xFFDDD5C8),
+                          width: 48.r,
+                          height: 48.r,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color(0xFFDDD5C8),
+                          ),
+                          child: ClipOval(
+                            child: _avatarUrl.isNotEmpty
+                                ? Image.network(
+                                    _avatarUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const Icon(
+                                      Icons.person,
+                                      size: 28,
+                                      color: Color(0xFF9A9088),
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.person,
+                                    size: 28,
+                                    color: Color(0xFF9A9088),
+                                  ),
+                          ),
                         ),
-                        child: const Icon(
-                          Icons.person,
-                          size: 28,
-                          color: Color(0xFF9A9088),
-                        ),
-                      ),
                         SizedBox(width: 10.w),
                         Text(
                           fullName,

@@ -8,9 +8,8 @@ import 'package:sakina/features/onboarding/main_onboarding.dart';
 import 'package:sakina/features/role/ui/role_screen.dart';
 import 'package:sakina/bill_popup/utilitybill.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:sakina/core/widgets/bottom_bar.dart';
 import 'package:sakina/landlord/host_profile_screen.dart';
-
+import 'package:sakina/pages/home.dart';
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 class SakinaApp extends StatelessWidget {
@@ -20,7 +19,7 @@ class SakinaApp extends StatelessWidget {
     if (session == null) return MainOnboarding();
     final role = session.user.userMetadata?['role'];
     if (role == 'landlord') return HostProfileScreen();
-    if (role == 'tenant') return const ButtomNavBarScreen();
+    if (role == 'tenant') return const HomePage();
     return const RoleScreen();
   }
 
@@ -42,7 +41,7 @@ class SakinaApp extends StatelessWidget {
           locale: context.locale,
           home: _getHomeScreen(session),
           routes: {
-            '/home': (context) => const ButtomNavBarScreen(),
+            '/home': (context) => const HomePage(),
             '/landlord-home': (context) => HostProfileScreen(),
             '/utility-bill': (context) => const UtilityBillScreen(),
             '/role': (context) => const RoleScreen(),

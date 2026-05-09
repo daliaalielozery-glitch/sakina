@@ -73,6 +73,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       emit(HomeError(e.toString()));
     }
   }
+  
 
   Future<ListingModel?> _fetchNearbyListing() async {
     try {

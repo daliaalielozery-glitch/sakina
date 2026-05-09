@@ -39,7 +39,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   @override
   void initState() {
     super.initState();
-    // Set name immediately from auth so it shows right away
     final authUser = _supabase.auth.currentUser;
     _fullName = authUser?.userMetadata?['full_name'] ??
         authUser?.userMetadata?['name'] ??
@@ -66,7 +65,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             .maybeSingle(),
         _supabase
             .from('lifestyle_profile')
-            .select('circadian_rhythm, social_threshold, smoking_preferences, environmental_order, pets_allowed')
+            .select(
+                'circadian_rhythm, social_threshold, smoking_preferences, environmental_order, pets_allowed')
             .eq('user_id', userId)
             .maybeSingle(),
       ]);
@@ -77,12 +77,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
       if (mounted) {
         setState(() {
-          // Keep auth name if DB has nothing better
-          final authUser = _supabase.auth.currentUser;
           final dbName = user?['full_name']?.toString() ?? '';
           if (dbName.isNotEmpty) _fullName = dbName;
-          // else keep what was set in initState
-
           _avatarUrl = user?['avatar_url'] ?? '';
           _bio = user?['bio'] ?? '';
           _university = tenant?['university'] ?? '';
@@ -96,12 +92,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          // Name already set in initState, no need to reset
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -158,7 +149,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             ),
             if (_avatarUrl.isNotEmpty)
               ListTile(
-                leading: const Icon(Icons.delete_outline, color: Colors.red),
+                leading:
+                    const Icon(Icons.delete_outline, color: Colors.red),
                 title: const Text('Remove Photo',
                     style: TextStyle(color: Colors.red)),
                 onTap: () => Navigator.pop(context, 'remove'),
@@ -210,19 +202,25 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       await _supabase.storage.from('avatars').uploadBinary(
             fileName,
             bytes,
-            fileOptions:
-                const FileOptions(contentType: 'image/jpeg', upsert: true),
+            fileOptions: const FileOptions(
+                contentType: 'image/jpeg', upsert: true),
           );
 
-      final url = _supabase.storage.from('avatars').getPublicUrl(fileName);
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final url =
+          _supabase.storage.from('avatars').getPublicUrl(fileName);
 
+      // Save clean URL to DB
       await _supabase
           .from('users')
           .update({'avatar_url': url}).eq('user_id', userId);
 
       if (mounted) {
+        // Clear Flutter image cache
+        PaintingBinding.instance.imageCache.clear();
+        PaintingBinding.instance.imageCache.clearLiveImages();
         setState(() {
-          _avatarUrl = '$url?t=${DateTime.now().millisecondsSinceEpoch}';
+          _avatarUrl = '$url?t=$timestamp';
           _isUploading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
@@ -245,8 +243,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: AppColors.primaryColor,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16)),
         title: const Text('Edit Bio',
             style: TextStyle(
                 fontFamily: 'Manrope', fontWeight: FontWeight.w700)),
@@ -290,11 +288,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     try {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) return;
-
       await _supabase
           .from('users')
           .update({'bio': result}).eq('user_id', userId);
-
       if (mounted) setState(() => _bio = result);
     } catch (e) {
       if (mounted) {
@@ -339,7 +335,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         padding: EdgeInsets.only(bottom: 16),
                         child: LinearProgressIndicator(),
                       ),
-
                     ProfileHeader(
                       name: _fullName,
                       university: _university.isNotEmpty
@@ -351,7 +346,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       onEditBio: _editBio,
                     ),
                     const SizedBox(height: 16),
-
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 4),
@@ -367,7 +361,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           )),
                     ),
                     const SizedBox(height: 24),
-
                     if (_circadianRhythm.isNotEmpty ||
                         _socialThreshold.isNotEmpty ||
                         _environmentalOrder.isNotEmpty)
@@ -400,7 +393,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                   _chip(Icons.people_outline,
                                       _formatLabel(_socialThreshold)),
                                 if (_environmentalOrder.isNotEmpty)
-                                  _chip(Icons.cleaning_services_outlined,
+                                  _chip(
+                                      Icons.cleaning_services_outlined,
                                       _formatLabel(_environmentalOrder)),
                                 if (_smokingPreferences.isNotEmpty)
                                   _chip(Icons.smoke_free,
@@ -412,7 +406,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           ],
                         ),
                       ),
-
                     const SizedBox(height: 24),
                     const PreferencesSection(),
                     const SizedBox(height: 24),
@@ -434,7 +427,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     Text(
                       'App Version 2.4.0',
                       style: TextStyle(
-                        color: const Color(0xFF4C463C).withValues(alpha: 0.5),
+                        color: const Color(0xFF4C463C)
+                            .withValues(alpha: 0.5),
                         fontSize: 12,
                         fontFamily: 'Manrope',
                       ),

@@ -19,7 +19,6 @@ class _PersonalInformationScreenState
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _universityController;
-  late TextEditingController _nationalIdController;
 
   @override
   void initState() {
@@ -27,9 +26,7 @@ class _PersonalInformationScreenState
     _nameController = TextEditingController();
     _emailController = TextEditingController();
     _universityController = TextEditingController();
-    _nationalIdController = TextEditingController();
 
-    // Set from auth immediately so fields are never empty
     final authUser = _supabase.auth.currentUser;
     _nameController.text = authUser?.userMetadata?['full_name'] ??
         authUser?.userMetadata?['name'] ??
@@ -45,7 +42,6 @@ class _PersonalInformationScreenState
     _nameController.dispose();
     _emailController.dispose();
     _universityController.dispose();
-    _nationalIdController.dispose();
     super.dispose();
   }
 
@@ -65,27 +61,24 @@ class _PersonalInformationScreenState
             .maybeSingle(),
         _supabase
             .from('tenants')
-            .select('university, national_id')
+            .select('university')
             .eq('user_id', userId)
             .maybeSingle(),
       ]);
 
-      final user = results[0];
-      final tenant = results[1];
+      final user = results[0] as Map<String, dynamic>?;
+      final tenant = results[1] as Map<String, dynamic>?;
 
       if (mounted) {
         setState(() {
-          // Only override name if DB has a real value
           if (user?['full_name']?.toString().isNotEmpty == true) {
             _nameController.text = user!['full_name'];
           }
           _universityController.text = tenant?['university'] ?? '';
-          _nationalIdController.text = tenant?['national_id'] ?? '';
           _isLoading = false;
         });
       }
     } catch (e) {
-      // Fields already set from auth in initState
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -96,19 +89,37 @@ class _PersonalInformationScreenState
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) return;
 
-      await Future.wait([
-        _supabase
-            .from('users')
-            .update({'full_name': _nameController.text.trim()})
-            .eq('user_id', userId),
-        _supabase
+      // Save name to users table
+      await _supabase
+          .from('users')
+          .update({'full_name': _nameController.text.trim()})
+          .eq('user_id', userId);
+
+      // Update university — insert if row doesn't exist yet
+      final existing = await _supabase
+          .from('tenants')
+          .select('tenant_id')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (existing != null) {
+        await _supabase
             .from('tenants')
-            .update({
-              'university': _universityController.text.trim(),
-              'national_id': _nationalIdController.text.trim(),
-            })
-            .eq('user_id', userId),
-      ]);
+            .update({'university': _universityController.text.trim()})
+            .eq('user_id', userId);
+      } else {
+        await _supabase.from('tenants').insert({
+          'user_id': userId,
+          'university': _universityController.text.trim(),
+        });
+      }
+
+      // Update auth metadata so name shows everywhere immediately
+      await _supabase.auth.updateUser(
+        UserAttributes(
+          data: {'full_name': _nameController.text.trim()},
+        ),
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -150,17 +161,15 @@ class _PersonalInformationScreenState
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  _field('Full Name', _nameController, Icons.person_outline),
+                  _field('Full Name', _nameController,
+                      Icons.person_outline),
                   const SizedBox(height: 16),
-                  _field('Email', _emailController, Icons.email_outlined,
+                  _field('Email', _emailController,
+                      Icons.email_outlined,
                       enabled: false),
                   const SizedBox(height: 16),
                   _field('University', _universityController,
                       Icons.school_outlined),
-                  const SizedBox(height: 16),
-                  _field('National ID', _nationalIdController,
-                      Icons.badge_outlined,
-                      keyboardType: TextInputType.number),
                   const SizedBox(height: 32),
                   SizedBox(
                     width: double.infinity,
@@ -169,7 +178,8 @@ class _PersonalInformationScreenState
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.fontColor,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
                       ),
@@ -189,9 +199,13 @@ class _PersonalInformationScreenState
     );
   }
 
-  Widget _field(String label, TextEditingController controller, IconData icon,
-      {bool enabled = true,
-      TextInputType keyboardType = TextInputType.text}) {
+  Widget _field(
+    String label,
+    TextEditingController controller,
+    IconData icon, {
+    bool enabled = true,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -212,7 +226,8 @@ class _PersonalInformationScreenState
             prefixIcon:
                 Icon(icon, color: const Color(0xFF4C463C), size: 20),
             filled: true,
-            fillColor: enabled ? Colors.white : const Color(0xFFF0EBE3),
+            fillColor:
+                enabled ? Colors.white : const Color(0xFFF0EBE3),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide.none,

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:sakina/core/theme/app_colors.dart';
+import 'package:uuid/uuid.dart';
 
 class NotificationsSettingsScreen extends StatefulWidget {
   const NotificationsSettingsScreen({super.key});
@@ -11,14 +13,107 @@ class NotificationsSettingsScreen extends StatefulWidget {
 
 class _NotificationsSettingsScreenState
     extends State<NotificationsSettingsScreen> {
-  bool _newMatches = true;
-  bool _messages = true;
-  bool _listings = true;
-  bool _utilityBills = true;
-  bool _roomRequests = true;
-  bool _promotions = false;
-  bool _emailNotifs = true;
-  bool _pushNotifs = true;
+  final _supabase = Supabase.instance.client;
+  bool _isLoading = true;
+  bool _isSaving = false;
+
+  bool _pushEnabled = true;
+  bool _messageEnabled = true;
+  bool _listingsEnabled = true;
+  bool _matchesEnabled = true;
+  bool _depositEnabled = true;
+
+  String? _preferenceId;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPreferences();
+  }
+
+  Future<void> _fetchPreferences() async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      final row = await _supabase
+          .from('notification_preferences')
+          .select()
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (mounted) {
+        setState(() {
+          if (row != null) {
+            _preferenceId = row['preference_id']?.toString();
+            _pushEnabled = row['push_enabled'] ?? true;
+            _messageEnabled = row['message_enabled'] ?? true;
+            _listingsEnabled = row['listings_enabled'] ?? true;
+            _matchesEnabled = row['matches_enabled'] ?? true;
+            _depositEnabled = row['deposit_enabled'] ?? true;
+          }
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _save() async {
+    setState(() => _isSaving = true);
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) return;
+
+      final data = {
+        'user_id': userId,
+        'push_enabled': _pushEnabled,
+        'message_enabled': _messageEnabled,
+        'listings_enabled': _listingsEnabled,
+        'matches_enabled': _matchesEnabled,
+        'deposit_enabled': _depositEnabled,
+      };
+
+      if (_preferenceId != null) {
+        // Update existing row
+        await _supabase
+            .from('notification_preferences')
+            .update(data)
+            .eq('preference_id', _preferenceId!);
+      } else {
+        // Insert new row with generated UUID
+        final result = await _supabase
+            .from('notification_preferences')
+            .insert({
+              ...data,
+              'preference_id': const Uuid().v4(),
+            })
+            .select('preference_id')
+            .single();
+        _preferenceId = result['preference_id']?.toString();
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Notification preferences saved!')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,68 +132,56 @@ class _NotificationsSettingsScreenState
                 fontSize: 18,
                 fontWeight: FontWeight.w700)),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _section('DELIVERY METHOD', [
-              _toggle(Icons.phone_android, 'Push Notifications',
-                  _pushNotifs,
-                  (v) => setState(() => _pushNotifs = v)),
-              _toggle(Icons.email_outlined, 'Email Notifications',
-                  _emailNotifs,
-                  (v) => setState(() => _emailNotifs = v)),
-            ]),
-            const SizedBox(height: 24),
-            _section('ACTIVITY', [
-              _toggle(Icons.favorite_outline, 'New Matches', _newMatches,
-                  (v) => setState(() => _newMatches = v)),
-              _toggle(Icons.chat_bubble_outline, 'Messages', _messages,
-                  (v) => setState(() => _messages = v)),
-              _toggle(Icons.home_outlined, 'New Listings', _listings,
-                  (v) => setState(() => _listings = v)),
-              _toggle(Icons.people_outline, 'Roommate Requests',
-                  _roomRequests,
-                  (v) => setState(() => _roomRequests = v)),
-              _toggle(Icons.receipt_long, 'Utility Bills', _utilityBills,
-                  (v) => setState(() => _utilityBills = v)),
-            ]),
-            const SizedBox(height: 24),
-            _section('MARKETING', [
-              _toggle(Icons.campaign_outlined, 'Promotions & Offers',
-                  _promotions,
-                  (v) => setState(() => _promotions = v)),
-            ]),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content:
-                            Text('Notification preferences saved!')),
-                  );
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.fontColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-                child: const Text('Save Preferences',
-                    style: TextStyle(
-                        fontFamily: 'Manrope',
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600)),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _section('NOTIFICATION TYPES', [
+                    _toggle(Icons.phone_android, 'Push Notifications',
+                        _pushEnabled,
+                        (v) => setState(() => _pushEnabled = v)),
+                    _toggle(Icons.chat_bubble_outline, 'Messages',
+                        _messageEnabled,
+                        (v) => setState(() => _messageEnabled = v)),
+                    _toggle(Icons.home_outlined, 'New Listings',
+                        _listingsEnabled,
+                        (v) => setState(() => _listingsEnabled = v)),
+                    _toggle(Icons.favorite_outline, 'New Matches',
+                        _matchesEnabled,
+                        (v) => setState(() => _matchesEnabled = v)),
+                    _toggle(Icons.receipt_long, 'Deposits & Bills',
+                        _depositEnabled,
+                        (v) => setState(() => _depositEnabled = v)),
+                  ]),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _isSaving ? null : _save,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.fontColor,
+                        foregroundColor: Colors.white,
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: _isSaving
+                          ? const CircularProgressIndicator(
+                              color: Colors.white)
+                          : const Text('Save Preferences',
+                              style: TextStyle(
+                                  fontFamily: 'Manrope',
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 
