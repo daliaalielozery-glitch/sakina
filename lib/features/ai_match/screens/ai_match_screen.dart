@@ -791,8 +791,8 @@ class _RoommateProfileViewState extends State<_RoommateProfileView> {
             .maybeSingle(),
       ]);
 
-      final user = results[0] as Map<String, dynamic>?;
-      final lifestyle = results[1] as Map<String, dynamic>?;
+      final user = results[0];
+      final lifestyle = results[1];
 
       if (mounted) {
         setState(() {

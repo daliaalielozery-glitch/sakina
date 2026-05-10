@@ -38,9 +38,8 @@ class _ExplorePageState extends State<ExplorePage> {
     return BlocProvider.value(
       value: _listingsBloc,
       child: Scaffold(
-        appBar: const Myappbar(),
-        backgroundColor: AppColors.primaryColor,
-        body: SingleChildScrollView(
+  backgroundColor: AppColors.primaryColor,
+  body: SingleChildScrollView(
           child: Container(
             margin: const EdgeInsets.all(24),
             child: Column(

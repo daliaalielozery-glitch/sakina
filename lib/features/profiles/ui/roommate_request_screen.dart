@@ -77,9 +77,9 @@ class _RoommateRequestScreenState extends State<RoommateRequestScreen> {
             .maybeSingle(),
       ]);
 
-      final user = results[0] as Map<String, dynamic>?;
-      final tenant = results[1] as Map<String, dynamic>?;
-      final lifestyle = results[2] as Map<String, dynamic>?;
+      final user = results[0];
+      final tenant = results[1];
+      final lifestyle = results[2];
 
       // Derive compatibility scores from lifestyle data
       double cleanlinessScore = 0.7;

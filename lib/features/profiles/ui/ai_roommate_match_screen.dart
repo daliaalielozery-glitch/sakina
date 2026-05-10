@@ -92,9 +92,9 @@ class _AiRoommateMatchScreenState extends State<AiRoommateMatchScreen> {
             .maybeSingle(),
       ]);
 
-      final user = results[0] as Map<String, dynamic>?;
-      final tenantRow = results[1] as Map<String, dynamic>?;
-      final lifestyle = results[2] as Map<String, dynamic>?;
+      final user = results[0];
+      final tenantRow = results[1];
+      final lifestyle = results[2];
       final breakdown = topMatch['breakdown'] as Map<String, dynamic>? ?? {};
 
       // Resolve name — use edge function data first, fallback to DB
