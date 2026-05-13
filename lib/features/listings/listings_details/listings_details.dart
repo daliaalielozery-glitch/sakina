@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:panorama_viewer/panorama_viewer.dart';
 import 'package:sakina/core/theme/app_colors.dart';
 import 'package:sakina/features/listings/listings_details/widgets/community_voice_widget.dart';
 import 'package:sakina/features/listings/listings_details/widgets/facilities_card.dart';
@@ -12,6 +14,7 @@ import 'package:sakina/landlord/public_landlord_profile_screen.dart';
 import 'package:sakina/pages/messages/chat_screen/chat_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:sakina/booking/booking.dart';
+
 
 class RoomDetailScreen extends StatefulWidget {
   final ListingModel listing;
@@ -97,14 +100,14 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
                       _submitReview(listing, rating, comment),
                 ),
                 ListingBottomBar(
-                 onBookViewing: () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => SecureBookingScreen(listing: listing),
-    ),
-  );
-},
+                  onBookViewing: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SecureBookingScreen(listing: listing),
+                      ),
+                    );
+                  },
                   onChat: () async {
                     try {
                       final convId = await _getOrCreateConversation();
@@ -127,7 +130,7 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
                       );
                     }
                   },
-                )
+                ),
               ],
             ),
           ),
@@ -167,23 +170,27 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
   }
 
   void _show360Tour(ListingModel listing) {
-    final tourUrl = listing.tour360Url?.trim();
+  // tour_360_url is null in your DB — fall back to image_url when has_360_tour is true
+  final tourUrl = (listing.tour360Url?.trim().isNotEmpty == true)
+      ? listing.tour360Url!
+      : (listing.has360Tour && listing.imageUrl?.trim().isNotEmpty == true)
+          ? listing.imageUrl!
+          : null;
 
-    if (tourUrl == null || tourUrl.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('The host has not uploaded a 360 tour yet.')),
-      );
-      return;
-    }
+  debugPrint('[360 Tour] resolved URL: $tourUrl');
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => _Tour360Screen(url: tourUrl),
-      ),
+  if (tourUrl == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('The host has not uploaded a 360° tour yet.')),
     );
+    return;
   }
+
+  Navigator.push(
+    context,
+    MaterialPageRoute(builder: (_) => _Tour360Screen(url: tourUrl)),
+  );
+}
 
   Future<String> _getOrCreateConversation() async {
     final supabase = Supabase.instance.client;
@@ -263,6 +270,8 @@ class _RoomDetailScreenState extends State<RoomDetailScreen> {
     });
   }
 }
+
+// ─── Info Card ────────────────────────────────────────────────────────────────
 
 class _InfoCard extends StatelessWidget {
   final ListingModel listing;
@@ -358,6 +367,8 @@ class _InfoCard extends StatelessWidget {
   }
 }
 
+// ─── Sakina Match Section ─────────────────────────────────────────────────────
+
 class _SakinaMatchSection extends StatelessWidget {
   final ListingModel listing;
 
@@ -433,18 +444,10 @@ class _MatchCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              icon,
-              color: const Color(0xFF1A1A1A),
-              size: 30,
-              fontWeight: FontWeight.w700,
-            ),
+          Icon(
+            icon,
+            color: const Color(0xFF1A1A1A),
+            size: 30,
           ),
           const SizedBox(height: 12),
           Text(
@@ -471,7 +474,9 @@ class _MatchCard extends StatelessWidget {
             ),
           ),
           if (badge != null) ...[
+            const SizedBox(height: 10),
             const Divider(color: Color(0xFFEEE8DE)),
+            const SizedBox(height: 4),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -495,6 +500,8 @@ class _MatchCard extends StatelessWidget {
     );
   }
 }
+
+// ─── Refresh Error Banner ─────────────────────────────────────────────────────
 
 class _RefreshErrorBanner extends StatelessWidget {
   final String message;
@@ -533,9 +540,53 @@ class _RefreshErrorBanner extends StatelessWidget {
   }
 }
 
-class _Tour360Screen extends StatelessWidget {
+// ─── 360° Tour Screen ─────────────────────────────────────────────────────────
+
+class _Tour360Screen extends StatefulWidget {
   final String url;
+
   const _Tour360Screen({required this.url});
+
+  @override
+  State<_Tour360Screen> createState() => _Tour360ScreenState();
+}
+
+class _Tour360ScreenState extends State<_Tour360Screen> {
+  bool _imageLoaded = false;
+  bool _imageFailed = false;
+  ImageStreamListener? _imageListener;
+
+  @override
+  void initState() {
+    super.initState();
+    _preloadImage();
+  }
+
+  /// Preload the image via Flutter's ImageStream so we get
+  /// load/error callbacks without relying on PanoramaViewer internals.
+  void _preloadImage() {
+    final provider = NetworkImage(widget.url);
+    _imageListener = ImageStreamListener(
+      (_, __) {
+        if (mounted) setState(() => _imageLoaded = true);
+      },
+      onError: (exception, stackTrace) {
+        debugPrint('[360 Tour] Image failed: $exception');
+        if (mounted) setState(() => _imageFailed = true);
+      },
+    );
+    provider
+        .resolve(ImageConfiguration.empty)
+        .addListener(_imageListener!);
+  }
+
+  void _retry() {
+    setState(() {
+      _imageLoaded = false;
+      _imageFailed = false;
+    });
+    _preloadImage();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -546,51 +597,127 @@ class _Tour360Screen extends StatelessWidget {
         foregroundColor: Colors.white,
         title: const Text(
           '360° Tour',
-          style: TextStyle(
-              fontFamily: 'Manrope', fontWeight: FontWeight.w700),
+          style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700),
         ),
         elevation: 0,
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 40),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.vrpano_outlined,
-                  color: Colors.white54, size: 80),
-              const SizedBox(height: 24),
-              const Text(
-                '360° Tour Available',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  fontFamily: 'Manrope',
+      body: Stack(
+        children: [
+          // ── Web: InteractiveViewer (pan + zoom) ──────────────────────────
+          if (kIsWeb && _imageLoaded && !_imageFailed)
+            Center(
+              child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: Image.network(
+                  widget.url,
+                  fit: BoxFit.contain,
+                  width: double.infinity,
                 ),
               ),
-              const SizedBox(height: 12),
-              Text(
-                url,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    color: Colors.white54,
-                    fontSize: 12,
-                    fontFamily: 'Manrope'),
+            ),
+
+          // ── Mobile: true PanoramaViewer ──────────────────────────────────
+          if (!kIsWeb && _imageLoaded && !_imageFailed)
+            PanoramaViewer(
+              animSpeed: 1.0,
+              sensorControl: SensorControl.absoluteOrientation,
+              child: Image.network(widget.url),
+            ),
+
+          // ── Loading overlay ───────────────────────────────────────────────
+          if (!_imageLoaded && !_imageFailed)
+            const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: Colors.white),
+                  SizedBox(height: 16),
+                  Text(
+                    'Loading 360° tour…',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                      fontFamily: 'Manrope',
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 32),
-              const Text(
-                'Open this link in your browser to view the full 360° experience.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                    height: 1.6,
-                    fontFamily: 'Manrope'),
+            ),
+
+          // ── Error state ───────────────────────────────────────────────────
+          if (_imageFailed)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.broken_image_outlined,
+                        color: Colors.white54, size: 64),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Could not load the 360° image.\nMake sure the URL points to a valid equirectangular photo.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                        fontFamily: 'Manrope',
+                        height: 1.6,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    TextButton(
+                      onPressed: _retry,
+                      child: const Text(
+                        'Try again',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
-        ),
+            ),
+
+          // ── Hint pill ────────────────────────────────────────────────────
+          if (_imageLoaded && !_imageFailed)
+            Positioned(
+              bottom: 32,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        kIsWeb ? Icons.open_with : Icons.screen_rotation,
+                        color: Colors.white70,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        kIsWeb
+                            ? 'Drag to pan · pinch to zoom'
+                            : 'Drag or tilt to explore',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                          fontFamily: 'Manrope',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
