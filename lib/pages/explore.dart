@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:sakina/core/theme/app_colors.dart';
-import 'package:sakina/core/widgets/custom_app_bar.dart';
 import 'package:sakina/features/listings/bloc/listings_bloc.dart';
 import 'package:sakina/features/listings/bloc/listings_event.dart';
 import 'package:sakina/features/listings/repository/listings_repository.dart';
