@@ -37,6 +37,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
   final _titleController = TextEditingController();
   final _priceController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _tour360Controller = TextEditingController();
 
   String _policy = 'Female Only';
   String _propertyType = 'Apartment';
@@ -46,6 +47,8 @@ class _AddListingScreenState extends State<AddListingScreen> {
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
   String _selectedAddress = '';
+  String _titleValue = '';
+  String _priceValue = '';
   double? _selectedLat;
   double? _selectedLng;
 
@@ -72,6 +75,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
     _titleController.dispose();
     _priceController.dispose();
     _descriptionController.dispose();
+    _tour360Controller.dispose();
     super.dispose();
   }
 
@@ -163,11 +167,29 @@ class _AddListingScreenState extends State<AddListingScreen> {
 
   // ==================== PUBLISH LISTING ====================
   Future<void> _publishListing() async {
-    if (_titleController.text.isEmpty ||
-        _priceController.text.isEmpty ||
-        _selectedAddress.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Please fill all fields and pick a location')));
+    final title = _titleController.text.trim().isNotEmpty
+        ? _titleController.text.trim()
+        : _titleValue.trim();
+    final price = _priceController.text.trim().isNotEmpty
+        ? _priceController.text.trim()
+        : _priceValue.trim();
+    final address = _selectedAddress.trim();
+
+    debugPrint('[PUBLISH] title="$title" price="$price" address="$address"');
+
+    if (title.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a property title')));
+      return;
+    }
+    if (price.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a monthly rent price')));
+      return;
+    }
+    if (address.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please pick a location on the map')));
       return;
     }
     setState(() => _isLoading = true);
@@ -180,14 +202,17 @@ class _AddListingScreenState extends State<AddListingScreen> {
           .from('property_listings')
           .insert({
             'landlord_id': user.id,
-            'title': _titleController.text,
-            'description': _descriptionController.text,
+            'title': title,
+            'description': _descriptionController.text.trim(),
             'rent_price':
-                double.parse(_priceController.text.replaceAll(',', '')),
+                double.parse(price.replaceAll(',', '')),
             'property_type': _propertyType.toLowerCase(),
             'available_rooms': 1,
             'status': 'available',
-            'amenities': _selectedAmenities, // ✅ store selected amenities
+            'amenities': _selectedAmenities,
+            'has_360_tour': _tour360Controller.text.trim().isNotEmpty,
+            if (_tour360Controller.text.trim().isNotEmpty)
+              'tour_360_url': _tour360Controller.text.trim(),
           })
           .select()
           .single();
@@ -395,14 +420,18 @@ class _AddListingScreenState extends State<AddListingScreen> {
           children: [
             const _SectionHeader(
                 title: 'Property\nBasics', step: 'STEP 02 / 06'),
-            const _InputField(
+            _InputField(
                 label: 'PROPERTY TITLE',
-                hint: 'e.g., Sun-drenched Studio near AUC'),
+                hint: 'e.g., Sun-drenched Studio near AUC',
+                controller: _titleController,
+                onChanged: (v) => setState(() => _titleValue = v)),
             const SizedBox(height: 14),
-            const _InputField(
+            _InputField(
                 label: 'MONTHLY RENT (EGP)',
                 hint: '8,500',
-                keyboardType: TextInputType.number),
+                keyboardType: TextInputType.number,
+                controller: _priceController,
+                onChanged: (v) => setState(() => _priceValue = v)),
             const SizedBox(height: 14),
             _DropdownField(
                 label: 'PROPERTY TYPE',
@@ -587,6 +616,33 @@ class _AddListingScreenState extends State<AddListingScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 20),
+            Text(
+              '360\u00b0 Tour URL (optional)',
+              style: GoogleFonts.manrope(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.border, width: 0.5)),
+              child: TextField(
+                controller: _tour360Controller,
+                keyboardType: TextInputType.url,
+                style: GoogleFonts.manrope(fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: 'https://... (equirectangular image URL)',
+                  hintStyle: GoogleFonts.manrope(
+                      fontSize: 13, color: AppColors.textHint),
+                  prefixIcon: const Icon(Icons.threesixty_outlined, size: 20),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.all(14),
+                ),
+              ),
+            ),
           ],
         ),
       );
@@ -706,10 +762,13 @@ class _InputField extends StatelessWidget {
   final String label, hint;
   final TextInputType keyboardType;
   final TextEditingController? controller;
+  final ValueChanged<String>? onChanged;
   const _InputField(
       {required this.label,
       required this.hint,
-      this.keyboardType = TextInputType.text}) : controller = null;
+      this.keyboardType = TextInputType.text,
+      this.controller,
+      this.onChanged});
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -725,6 +784,7 @@ class _InputField extends StatelessWidget {
         TextField(
           controller: controller,
           keyboardType: keyboardType,
+          onChanged: onChanged,
           style: GoogleFonts.manrope(fontSize: 14),
           decoration: InputDecoration(
             hintText: hint,
